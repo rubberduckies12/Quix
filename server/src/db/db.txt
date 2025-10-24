@@ -1,0 +1,57 @@
+src/db/
+├── config/
+│   ├── database.js                    # Sequelize config & connection
+│   └── connection.js                  # Raw PG pool connection
+├── models/
+│   ├── index.js                       # Model associations & exports
+│   ├── user.model.js                  # User entity
+│   ├── spreadsheet.model.js           # Uploaded file metadata
+│   ├── transaction.model.js           # Individual transactions
+│   ├── categorization.model.js        # AI categorization results
+│   ├── submission.model.js            # HMRC submissions (quarterly/annual)
+│   ├── vat-return.model.js            # VAT returns
+│   ├── processing-job.model.js        # Background job tracking
+│   └── audit-log.model.js             # Audit trail for compliance
+├── migrations/
+│   ├── 20241024101000-create-users.js
+│   ├── 20241024102000-create-spreadsheets.js
+│   ├── 20241024103000-create-transactions.js
+│   ├── 20241024104000-create-categorizations.js
+│   ├── 20241024105000-create-submissions.js
+│   ├── 20241024106000-create-vat-returns.js
+│   ├── 20241024107000-create-processing-jobs.js
+│   ├── 20241024108000-create-audit-logs.js
+│   ├── 20241024109000-add-indexes.js
+│   └── 20241024110000-add-constraints.js
+├── seeders/
+│   ├── 20241024201000-hmrc-categories.js      # HMRC expense categories
+│   ├── 20241024202000-vat-rates.js           # VAT rates & schemes
+│   └── 20241024203000-test-users.js          # Test data (dev only)
+├── queries/
+│   ├── analytics/
+│   │   ├── user-statistics.sql               # User analytics queries
+│   │   └── processing-metrics.sql            # Performance metrics
+│   ├── reports/
+│   │   ├── quarterly-summary.sql             # Quarterly report generation
+│   │   ├── annual-summary.sql                # Annual report generation
+│   │   └── vat-summary.sql                   # VAT report queries
+│   └── maintenance/
+│       ├── cleanup-old-files.sql             # Data cleanup
+│       └── optimize-indexes.sql              # Index optimization
+├── views/
+│   ├── user-dashboard.sql                    # User dashboard view
+│   ├── transaction-summary.sql               # Transaction aggregation view
+│   └── submission-status.sql                 # Submission status view
+├── functions/
+│   ├── calculate-tax-period.sql              # Tax period calculations
+│   ├── categorize-transaction.sql            # Transaction categorization
+│   └── validate-vat-number.sql               # VAT number validation
+├── triggers/
+│   ├── audit-trigger.sql                     # Audit trail triggers
+│   ├── updated-at-trigger.sql                # Auto-update timestamps
+│   └── validation-triggers.sql               # Data validation triggers
+└── scripts/
+    ├── setup.sql                             # Initial DB setup
+    ├── backup.sh                             # Database backup script
+    ├── restore.sh                            # Database restore script
+    └── performance-tuning.sql                # Performance optimization
