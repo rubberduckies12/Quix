@@ -4,8 +4,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ShieldCheckIcon, ChartBarIcon, ArrowTrendingUpIcon, SparklesIcon } from '@heroicons/react/24/solid';
 import { motion, Variants, useReducedMotion } from 'framer-motion';
-// import Header from '../../components/header';
-// import Footer from '../../components/footer';
+import Header from '../../components/header';
+import Footer from '../../components/footer';
 
 const Home = () => {
   const [isClient, setIsClient] = useState(false);
@@ -122,7 +122,7 @@ const Home = () => {
         />
       </div>
       
-      {/* <Header /> */}
+      <Header />
       
       {/* Hero Section */}
       <section className="relative px-4 sm:px-6 pt-6 sm:pt-8 lg:pt-12 pb-12 sm:pb-16 lg:pb-20 lg:px-8 overflow-hidden">
@@ -479,7 +479,7 @@ const Home = () => {
         </div>
       </motion.section>
 
-      {/* <Footer /> */}
+      <Footer />
     </div>
   );
 };

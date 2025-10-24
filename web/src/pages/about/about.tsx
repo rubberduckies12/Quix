@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ArrowRightIcon, ShieldCheckIcon, ChartBarIcon, ArrowTrendingUpIcon, SparklesIcon, RocketLaunchIcon, HomeIcon, EyeIcon, BoltIcon, CpuChipIcon, StarIcon, UserGroupIcon, BeakerIcon, MapIcon, CalendarIcon, XMarkIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
 import { motion, Variants, useReducedMotion, AnimatePresence } from 'framer-motion';
 import Header from '../../components/header';
-import Footer from '../../components/Footer';
+import Footer from '../../components/footer';
 
 const About = () => {
   const [isClient, setIsClient] = useState(false);
