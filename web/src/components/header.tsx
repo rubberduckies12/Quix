@@ -74,8 +74,6 @@ const Header = () => {
     { name: 'Terms & Conditions', href: '/policy/terms' },
     { name: 'Privacy Policy', href: '/policy/privacy' },
     { name: 'Cookie Policy', href: '/policy/cookies' },
-    { name: 'Financial Conduct', href: '/policy/CoC/finance' },
-    { name: 'AI & Data', href: '/policy/CoC/Ai&Data' },
   ];
 
   // Helper function to check if link is active
@@ -132,7 +130,7 @@ const Header = () => {
               onClick={() => setIsPoliciesOpen(false)}
             >
               Home
-              <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-500 transition-all duration-300 ${
+              <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-600 transition-all duration-300 ${
                 isActivePage('/') ? 'w-full' : 'w-0 group-hover:w-full'
               }`}></span>
             </Link>
@@ -142,7 +140,7 @@ const Header = () => {
               onClick={() => setIsPoliciesOpen(false)}
             >
               Product
-              <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-500 transition-all duration-300 ${
+              <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-600 transition-all duration-300 ${
                 isActivePage('/product') ? 'w-full' : 'w-0 group-hover:w-full'
               }`}></span>
             </Link>
@@ -152,7 +150,7 @@ const Header = () => {
               onClick={() => setIsPoliciesOpen(false)}
             >
               About
-              <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-500 transition-all duration-300 ${
+              <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-600 transition-all duration-300 ${
                 isActivePage('/about') ? 'w-full' : 'w-0 group-hover:w-full'
               }`}></span>
             </Link>
@@ -172,7 +170,7 @@ const Header = () => {
                 >
                   <ChevronDownIcon className="h-4 w-4" />
                 </motion.div>
-                <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-500 transition-all duration-300 ${
+                <span className={`absolute -bottom-1 left-0 h-0.5 bg-green-600 transition-all duration-300 ${
                   pathname.startsWith('/policy') ? 'w-full' : 'w-0 group-hover:w-full'
                 }`}></span>
               </button>
@@ -215,7 +213,7 @@ const Header = () => {
             >
               <Link 
                 href="/waitlist" 
-                className="inline-flex items-center rounded-xl bg-green-500 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-green-600 transition-all duration-200 hover:shadow-xl"
+                className="inline-flex items-center rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-green-700 transition-all duration-200 hover:shadow-xl"
                 onClick={() => setIsPoliciesOpen(false)}
               >
                 Join Waitlist
@@ -384,7 +382,7 @@ const Header = () => {
                     <Link 
                       href="/waitlist" 
                       onClick={closeMenu}
-                      className="inline-flex items-center justify-center w-full rounded-xl bg-green-500 px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-green-600 transition-all duration-200"
+                      className="inline-flex items-center justify-center w-full rounded-xl bg-green-600 px-6 py-3 text-base font-semibold text-white shadow-lg hover:bg-green-700 transition-all duration-200"
                     >
                       Join Waitlist
                     </Link>
