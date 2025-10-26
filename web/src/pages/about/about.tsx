@@ -10,7 +10,6 @@ import Footer from '../../components/footer';
 const About = () => {
   const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [currentStage, setCurrentStage] = useState(0); // 0-3 for 4 stages
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -29,133 +28,6 @@ const About = () => {
 
   // Disable all animations on mobile
   const noAnimation = shouldReduceMotion || isMobile;
-
-  // Growth stages configuration
-  const growthStages = [
-    {
-      id: 0,
-      name: 'Seed',
-      description: 'Building the foundation',
-      months: '1-3',
-      growthPercentage: 25,
-      emoji: '🌱',
-      treeImage: '/treeimag/1.png', // seed
-      features: [
-        "Mobile app developed",
-        "Beta launch and tests", 
-        "FCA innovation pathway"
-      ]
-    },
-    {
-      id: 1,
-      name: 'Sprout',
-      description: 'Early growth and validation',
-      months: '4-6',
-      growthPercentage: 50,
-      emoji: '🌿',
-      treeImage: '/treeimag/2.png', // sprout
-      features: [
-        "FCA approval received",
-        "£100,000 AUM",
-        "1,000 trees planted",
-        "Average portfolio growth of 11% per year"
-      ]
-    },
-    {
-      id: 2,
-      name: 'Growth',
-      description: 'Scaling and partnerships',
-      months: '7-9',
-      growthPercentage: 75,
-      emoji: '🌳',
-      treeImage: '/treeimag/3.png', // growth
-      features: [
-        "£1,000,000 AUM",
-        "10,000 trees planted",
-        "Average portfolio growth of 12%",
-        "Education program launched"
-      ]
-    },
-    {
-      id: 3,
-      name: 'Tree',
-      description: 'Maturity and expansion',
-      months: '10-12',
-      growthPercentage: 100,
-      emoji: '🌲',
-      treeImage: '/treeimag/4.png', // tree
-      features: [
-        "£100,000,000 AUM",
-        "1,000,000 trees planted",
-        "Global leader in online finance education",
-        "Crypto exchange launched on Ethereum Virtual Machine",
-        "Leading reforestation charity set up globally"
-      ]
-    }
-  ];
-
-  // Navigation functions
-  const goToPreviousStage = () => {
-    if (currentStage > 0) {
-      setCurrentStage(currentStage - 1);
-    }
-  };
-
-  const goToNextStage = () => {
-    if (currentStage < growthStages.length - 1) {
-      setCurrentStage(currentStage + 1);
-    }
-  };
-
-  const goToStage = (stageIndex: number) => {
-    setCurrentStage(stageIndex);
-  };
-
-  // Tree Visualization Component with Images
-  const TreeVisualization = ({ stage }: { stage: number }) => {
-    const currentStageData = growthStages[stage];
-
-    return (
-      <div className="relative flex items-center justify-center h-full w-full bg-white rounded-xl overflow-hidden">
-        {/* Main Tree Image */}
-        <motion.div
-          key={stage}
-          initial={{ scale: 0, opacity: 0, rotateY: -90 }}
-          animate={{ scale: 1, opacity: 1, rotateY: 0 }}
-          transition={{ 
-            duration: 0.8, 
-            ease: "easeOut",
-            type: "spring",
-            damping: 15,
-            stiffness: 200
-          }}
-          className="relative w-48 h-48 sm:w-56 sm:h-56 md:w-64 md:h-64 lg:w-72 lg:h-72"
-        >
-          <Image
-            src={currentStageData.treeImage}
-            alt={`${currentStageData.name} tree stage`}
-            fill
-            className="object-contain filter drop-shadow-lg"
-            priority
-          />
-        </motion.div>
-
-        {/* Stage indicator overlay */}
-        <div className="absolute top-4 right-4">
-          <motion.div
-            key={stage}
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg flex items-center space-x-2"
-          >
-            <span>{currentStageData.emoji}</span>
-            <span>{currentStageData.name}</span>
-          </motion.div>
-        </div>
-      </div>
-    );
-  };
 
   // Animation variants - disabled on mobile
   const fadeInUp: Variants = {
@@ -246,8 +118,6 @@ const About = () => {
       </div>
     );
   }
-
-  const currentStageData = growthStages[currentStage];
 
   return (
     <div className="min-h-screen bg-green-50 relative">
@@ -464,188 +334,8 @@ const About = () => {
         </div>
       </section>
 
-      {/* Growth Timeline */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-green-50 relative overflow-hidden">
-        {/* Excel grid background */}
-        <div className="absolute inset-0 opacity-8">
-          <div 
-            className="w-full h-full"
-            style={{
-              backgroundImage: `
-                linear-gradient(to right, #22c55e 1px, transparent 1px),
-                linear-gradient(to bottom, #22c55e 1px, transparent 1px)
-              `,
-              backgroundSize: '50px 40px'
-            }}
-          />
-        </div>
-        
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={fadeInUp}
-            className="text-center mb-12 sm:mb-16 lg:mb-20"
-          >
-            <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-green-600 mb-3 sm:mb-4">Our Growth Journey</h2>
-            <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-6 sm:mb-8 leading-tight">
-              Watch Quix grow with time
-            </h3>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto px-2">
-              Like a robust system, our platform grows stronger and more capable through distinct stages.
-            </p>
-          </motion.div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-            {/* Tree Visualization */}
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-              variants={fadeInLeft}
-              className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-green-100/50 h-full flex flex-col"
-            >
-              <div className="flex-1">
-                <TreeVisualization stage={currentStage} />
-              </div>
-              
-              {/* Growth phase indicator */}
-              <div className="text-center mt-6">
-                <motion.div
-                  key={currentStage}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  className="inline-flex items-center space-x-2 bg-green-100 px-4 py-2 rounded-full"
-                >
-                  <span className="text-2xl">{currentStageData.emoji}</span>
-                  <span className="text-green-800 font-semibold">
-                    {currentStageData.name} Stage - {currentStageData.description}
-                  </span>
-                </motion.div>
-              </div>
-            </motion.div>
-            
-            {/* Navigation & Features */}
-            <motion.div 
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-              variants={fadeInRight}
-              className="space-y-8 h-full flex flex-col"
-            >
-              {/* Stage Navigation */}
-              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-green-100/50 flex-1">
-                {/* Stage Progress Bar */}
-                <div className="mb-6">
-                  {/* Progress Bar */}
-                  <div className="bg-gray-200 rounded-full h-3 overflow-hidden mb-4 relative">
-                    <motion.div 
-                      className="bg-gradient-to-r from-green-600 to-green-700 h-3 rounded-full"
-                      initial={{ width: "0%" }}
-                      animate={{ 
-                        width: currentStage === 0 ? "0%" : 
-                               currentStage === 1 ? "33.33%" :
-                               currentStage === 2 ? "66.67%" : "100%"
-                      }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                    />
-                  </div>
-                  
-                  {/* Stage Labels */}
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span>Seed</span>
-                    <span>Sprout</span>
-                    <span>Growth</span>
-                    <span>Tree</span>
-                  </div>
-                </div>
-
-                {/* Navigation Controls */}
-                <div className="flex items-center justify-between mb-6">
-                  <button
-                    onClick={goToPreviousStage}
-                    disabled={currentStage === 0}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-                      currentStage === 0
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-green-600 hover:bg-green-50 hover:scale-105'
-                    }`}
-                  >
-                    <ChevronLeftIcon className="h-5 w-5" />
-                    <span className="font-medium">Previous</span>
-                  </button>
-
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-black flex items-center space-x-2">
-                      <span>{currentStageData.emoji}</span>
-                      <span>{currentStageData.name}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={goToNextStage}
-                    disabled={currentStage === growthStages.length - 1}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-                      currentStage === growthStages.length - 1
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-green-600 hover:bg-green-50 hover:scale-105'
-                    }`}
-                  >
-                    <span className="font-medium">Next</span>
-                    <ChevronRightIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-              
-              {/* Feature Releases */}
-              <AnimatePresence mode="wait">
-                <motion.div 
-                  key={currentStage}
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -30 }}
-                  transition={{ duration: 0.5, ease: "easeOut" }}
-                  className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-green-100/50 flex-1 flex flex-col min-h-[400px]"
-                >
-                  <h4 className="text-xl font-bold text-black mb-4 flex items-center justify-center">
-                    <span className="text-2xl mr-3">{currentStageData.emoji}</span>
-                    {currentStageData.name} Stage
-                  </h4>
-                  <div className="text-center mb-6">
-                    <p className="text-gray-700 text-lg">
-                      {currentStageData.description}
-                    </p>
-                  </div>
-                  
-                  {/* Key Milestones */}
-                  <div className="flex-1 flex flex-col">
-                    <h5 className="text-lg font-semibold text-black text-center mb-4">Key Milestones</h5>
-                    <div className="space-y-3 flex-1">
-                      {currentStageData.features.map((feature, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1, duration: 0.3 }}
-                          className="flex items-start space-x-3 justify-center"
-                        >
-                          <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0" />
-                          <span className="text-gray-700 leading-relaxed text-center">{feature}</span>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
       {/* Our Founders */}
-      <section className="py-16 sm:py-24 lg:py-32 bg-white/80 backdrop-blur-sm relative">
+      <section className="py-16 sm:py-24 lg:py-32 bg-green-50 relative">
         {/* Subtle grid overlay */}
         <div className="absolute inset-0 opacity-5">
           <div 
@@ -673,7 +363,7 @@ const About = () => {
               Built by people who get it
             </h3>
             <p className="text-base sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto px-2">
-              We&apos;re not MTD consultants. We&apos;re builders who saw a compliance problem and decided to bridge it.
+              We&apos;re not MTD consultants. We&apos;re builders who saw a compliance problem and decided to bridge the gap.
             </p>
           </motion.div>
           
@@ -705,7 +395,7 @@ const About = () => {
               </h4>
               <p className="text-green-600 font-semibold mb-3 sm:mb-4">The Builder</p>
               <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-                Engineer, student, and the one writing the code. Tommy saw businesses struggling with MTD transitions, so he built Quix to bridge the gap. Combines technical expertise with a simple belief: compliance shouldn&apos;t disrupt productivity.
+                Engineer, and student. Tommy leads the company vision while writing the code that makes it happen. He built Quix with the belief that preparing for MTD compliance shouldn&apos;t disrupt the workflows businesses already use.
               </p>
             </motion.a>
             
@@ -728,36 +418,33 @@ const About = () => {
               <h4 className="text-xl sm:text-2xl font-bold text-black mb-2">
                 Chris Thomson
               </h4>
-              <p className="text-green-600 font-semibold mb-3 sm:mb-4">The Numbers Guy</p>
+              <p className="text-green-600 font-semibold mb-3 sm:mb-4">The Growth Driver</p>
               <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-                Handles the compliance mathematics, manages finances, and ensures business efficiency. Chris makes sure the bridge actually works and the data flows correctly—so your submissions are accurate, not just automated.
+                Focused on getting Quix into the hands of businesses who need it most. Chris shapes strategy, partnerships, and everything that helps us scale from startup to the MTD bridge everyone uses.
               </p>
             </motion.a>
             
-            <motion.a
-              href="https://www.linkedin.com/in/tony-love-abb21596"
-              target="_blank"
-              rel="noopener noreferrer"
+            <motion.div
               variants={snapIn}
               whileHover={noAnimation ? {} : { y: -12, scale: 1.03 }}
               transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-              className="group relative bg-white rounded-3xl p-6 sm:p-8 shadow-xl hover:shadow-2xl border border-green-100/50 text-center cursor-pointer block"
+              className="group relative bg-white rounded-3xl p-6 sm:p-8 shadow-xl hover:shadow-2xl border border-green-100/50 text-center"
             >
               <motion.div 
                 whileHover={noAnimation ? {} : { rotate: 15, scale: 1.1 }}
                 transition={{ duration: 0.3 }}
                 className="mx-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-2xl bg-green-600 mb-4 sm:mb-6 shadow-lg group-hover:shadow-green-600/50"
               >
-                <span className="text-white font-bold text-xl sm:text-2xl">TL</span>
+                <span className="text-white font-bold text-xl sm:text-2xl">FP</span>
               </motion.div>
               <h4 className="text-xl sm:text-2xl font-bold text-black mb-2">
-                Tony Love
+                Finn Perkins
               </h4>
-              <p className="text-green-600 font-semibold mb-3 sm:mb-4">The Growth Driver</p>
+              <p className="text-green-600 font-semibold mb-3 sm:mb-4">The Engineer</p>
               <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-                Focused on getting Quix into the hands of businesses who need it most. Tony shapes strategy, partnerships, and everything that helps us scale from startup to the MTD bridge everyone uses.
+                Builds the technical infrastructure that makes the magic happen. Finn architects the systems that seamlessly connect your spreadsheets to HMRC, ensuring reliability, security, and performance at scale.
               </p>
-            </motion.a>
+            </motion.div>
           </motion.div>
 
           <motion.div 
