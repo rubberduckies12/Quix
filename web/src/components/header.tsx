@@ -109,7 +109,7 @@ const Header = () => {
               className="relative"
             >
               <Image 
-                src="/logo.png" 
+                src="/quix-logo.png" 
                 alt="Quix Logo" 
                 width={40}
                 height={40}
