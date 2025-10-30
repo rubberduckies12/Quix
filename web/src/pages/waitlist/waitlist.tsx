@@ -79,7 +79,7 @@ const Waitlist = () => {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/join', {
+      const response = await fetch('https://quix-mkgv.onrender.com/api/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
