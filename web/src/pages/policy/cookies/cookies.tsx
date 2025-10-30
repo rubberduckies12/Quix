@@ -10,10 +10,8 @@ const Cookies = () => {
   const [isMobile, setIsMobile] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
-  const COMPANY_NAME = 'Quix Ltd';
-  const SUPPORT_EMAIL = 'support@quix.com';
-  const COMPANY_REG = '12345678';
-  const COMPANY_ADDRESS = 'London, United Kingdom';
+  const COMPANY_NAME = 'Quix';
+  const SUPPORT_EMAIL = 'tommy.rowe@quixmtd.co.uk';
   const EFFECTIVE_DATE = 'January 1, 2025';
   const LAST_UPDATED = 'January 1, 2025';
 
@@ -166,8 +164,6 @@ const Cookies = () => {
                 <h4 className="text-lg sm:text-xl font-semibold text-black mb-3">Company Details:</h4>
                 <ul className="space-y-2 text-base sm:text-lg text-gray-700">
                   <li>• Company Name: {COMPANY_NAME}</li>
-                  <li>• Company Number: {COMPANY_REG}</li>
-                  <li>• Registered Office: {COMPANY_ADDRESS}</li>
                 </ul>
               </div>
               
@@ -485,10 +481,9 @@ const Cookies = () => {
               </p>
 
               <div className="bg-green-50 rounded-2xl p-4 sm:p-6">
-                <h4 className="text-lg font-semibold text-black mb-3">Contact Information:</h4>
+                <h4 className="text-lg sm:text-xl font-semibold text-black mb-3">Contact Information:</h4>
                 <ul className="space-y-2 text-base sm:text-lg text-gray-700">
                   <li>• <strong>Email:</strong> <a href={`mailto:${SUPPORT_EMAIL}`} className="text-green-600 hover:text-green-700 font-medium underline decoration-green-600/30 hover:decoration-green-700">{SUPPORT_EMAIL}</a></li>
-                  <li>• <strong>Address:</strong> {COMPANY_ADDRESS}</li>
                 </ul>
               </div>
             </motion.section>

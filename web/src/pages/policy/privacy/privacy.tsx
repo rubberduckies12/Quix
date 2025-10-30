@@ -10,11 +10,9 @@ const Privacy = () => {
   const [isMobile, setIsMobile] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
-  const COMPANY_NAME = 'Quix Ltd';
-  const SUPPORT_EMAIL = 'support@quix.com';
-  const DPO_EMAIL = 'privacy@quix.com';
-  const COMPANY_REG = '12345678';
-  const COMPANY_ADDRESS = 'London, United Kingdom';
+  const COMPANY_NAME = 'Quix';
+  const SUPPORT_EMAIL = 'tommy.rowe@quixmtd.co.uk';
+  const DPO_EMAIL = 'tommy.rowe@quixmtd.co.uk';
   const EFFECTIVE_DATE = 'January 1, 2025';
   const LAST_UPDATED = 'January 1, 2025';
 
@@ -163,8 +161,7 @@ const Privacy = () => {
               <div className="bg-green-50 rounded-2xl p-4 sm:p-6">
                 <h4 className="text-lg font-semibold text-black mb-3">Company Details:</h4>
                 <ul className="space-y-2 text-base text-gray-700">
-                  <li>• Company: {COMPANY_NAME} (No. {COMPANY_REG})</li>
-                  <li>• Address: {COMPANY_ADDRESS}</li>
+                  <li>• Company: {COMPANY_NAME}</li>
                   <li>• Privacy Contact: <a href={`mailto:${DPO_EMAIL}`} className="text-green-600 hover:text-green-700 font-medium underline decoration-green-600/30 hover:decoration-green-700">{DPO_EMAIL}</a></li>
                 </ul>
               </div>
@@ -313,7 +310,6 @@ const Privacy = () => {
                   <h4 className="text-lg font-semibold text-black mb-2">Data Protection Officer:</h4>
                   <ul className="space-y-1 text-base text-gray-700">
                     <li>• Email: <a href={`mailto:${DPO_EMAIL}`} className="text-green-600 hover:text-green-700 underline decoration-green-600/30 hover:decoration-green-700">{DPO_EMAIL}</a></li>
-                    <li>• Address: {COMPANY_ADDRESS}</li>
                   </ul>
                 </div>
 

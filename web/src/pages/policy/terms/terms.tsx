@@ -10,10 +10,8 @@ const TermsAndConditions = () => {
   const [isMobile, setIsMobile] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
-  const COMPANY_NAME = 'Quix Ltd';
-  const SUPPORT_EMAIL = 'support@quix.com';
-  const COMPANY_REG = '12345678';
-  const COMPANY_ADDRESS = 'London, United Kingdom';
+  const COMPANY_NAME = 'Quix';
+  const SUPPORT_EMAIL = 'tommy.rowe@quixmtd.co.uk';
   const EFFECTIVE_DATE = 'January 1, 2025';
   const LAST_UPDATED = 'January 1, 2025';
 
@@ -171,8 +169,7 @@ const TermsAndConditions = () => {
             <motion.section variants={fadeInUp} className="mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">2. About Us</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                The Service is provided by {COMPANY_NAME}, a company registered in England & Wales
-                (Company No. {COMPANY_REG}) with registered office at {COMPANY_ADDRESS}. For enquiries
+                The Service is provided by {COMPANY_NAME}. For enquiries
                 contact us at <a href={`mailto:${SUPPORT_EMAIL}`} className="text-green-600 hover:text-green-700 font-medium underline decoration-green-600/30 hover:decoration-green-700">{SUPPORT_EMAIL}</a>.
               </p>
             </motion.section>
@@ -314,8 +311,7 @@ const TermsAndConditions = () => {
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">16. Contact Information</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
                 If you have questions about these Terms, please contact us: <br />
-                <strong>Email:</strong> <a href={`mailto:${SUPPORT_EMAIL}`} className="text-green-600 hover:text-green-700 font-medium underline decoration-green-600/30 hover:decoration-green-700">{SUPPORT_EMAIL}</a> <br />
-                <strong>Address:</strong> {COMPANY_ADDRESS}
+                <strong>Email:</strong> <a href={`mailto:${SUPPORT_EMAIL}`} className="text-green-600 hover:text-green-700 font-medium underline decoration-green-600/30 hover:decoration-green-700">{SUPPORT_EMAIL}</a>
               </p>
             </motion.section>
 
