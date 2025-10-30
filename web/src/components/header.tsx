@@ -101,22 +101,7 @@ const Header = () => {
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-3 group" onClick={closeMenu}>
-            <motion.div 
-              whileHover={isMobile ? {} : { scale: 1.05, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="relative"
-            >
-              <Image 
-                src="/quix-logo.png" 
-                alt="Quix Logo" 
-                width={40}
-                height={40}
-                className="h-10 w-auto"
-                priority
-              />
-            </motion.div>
+          <Link href="/" className="flex items-center group" onClick={closeMenu}>
             <span className="text-2xl font-bold text-black group-hover:text-green-600 transition-colors duration-200">
               Quix
             </span>

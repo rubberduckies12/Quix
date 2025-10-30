@@ -170,14 +170,14 @@ const Product = () => {
           >
             <motion.div 
               variants={snapIn}
-              className="flex items-center justify-center -mb-2 sm:-mb-2 lg:-mb-16"
+              className="flex items-center justify-center mb-2 sm:mb-3 lg:mb-4 mt-2 sm:mt-3 lg:mt-4"
             >
               <Image 
-                src="/logo.png" 
+                src="/Quix/Quix text (logo).png" 
                 alt="Quix Logo" 
-                width={480} 
-                height={480}
-                className="h-28 sm:h-36 md:h-44 lg:h-56 w-auto"
+                width={600} 
+                height={200}
+                className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto"
                 priority
               />
             </motion.div>
@@ -208,26 +208,6 @@ const Product = () => {
             >
               Simplify VAT submissions and stay compliant with HMRC&apos;s Making Tax Digital requirements. Connect your spreadsheets directly to HMRC without changing your workflow.
             </motion.p>
-            
-            {/* Coming Soon Message */}
-            <motion.div 
-              variants={fadeInUp}
-              className="flex flex-col items-center justify-center mb-8 sm:mb-10 px-2"
-            >
-              <Link href="/waitlist/joinWaitlist">
-                <motion.div
-                  animate={noAnimation ? {} : { scale: [1, 1.05, 1] }}
-                  transition={noAnimation ? {} : { duration: 2, repeat: Infinity }}
-                  className="inline-flex items-center rounded-2xl bg-green-600 hover:bg-green-700 px-5 sm:px-7 lg:px-9 py-3 sm:py-4 lg:py-5 text-sm sm:text-base lg:text-lg font-semibold text-white shadow-2xl mb-3 sm:mb-4 cursor-pointer transition-colors duration-200"
-                >
-                  <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-2 sm:mr-3" />
-                  <span>Get Early Access</span>
-                </motion.div>
-              </Link>
-              <p className="text-gray-600 text-sm sm:text-base lg:text-lg text-center">
-                Making Tax Digital, Made Simple
-              </p>
-            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -340,8 +320,8 @@ const Product = () => {
 
       {/* Key Features Section */}
       <section className="py-16 sm:py-24 lg:py-32 bg-green-50 relative">
-        {/* Excel grid background */}
-        <div className="absolute inset-0 opacity-8">
+        {/* Subtle grid overlay */}
+        <div className="absolute inset-0 opacity-5">
           <div 
             className="w-full h-full"
             style={{
@@ -349,7 +329,7 @@ const Product = () => {
                 linear-gradient(to right, #22c55e 1px, transparent 1px),
                 linear-gradient(to bottom, #22c55e 1px, transparent 1px)
               `,
-              backgroundSize: '50px 40px'
+              backgroundSize: '60px 45px'
             }}
           />
         </div>
@@ -470,19 +450,6 @@ const Product = () => {
           >
             Trusted by accountants, bookkeepers, and small businesses across the UK — our HMRC MTD Bridging Tool ensures effortless compliance without changing your workflow.
           </motion.p>
-          
-          {/* Coming Soon Message for CTA */}
-          <motion.div 
-            variants={fadeInUp}
-            className="flex justify-center px-2"
-          >
-            <Link href="/waitlist/joinWaitlist">
-              <div className="inline-flex items-center rounded-2xl bg-white text-green-600 hover:bg-gray-50 px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 text-base sm:text-lg lg:text-xl font-bold shadow-2xl cursor-pointer transition-colors duration-200">
-                <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-2 sm:mr-3" />
-                <span>Try It Free</span>
-              </div>
-            </Link>
-          </motion.div>
         </div>
       </motion.section>
 

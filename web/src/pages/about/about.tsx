@@ -170,14 +170,14 @@ const About = () => {
           >
             <motion.div 
               variants={snapIn}
-              className="flex items-center justify-center -mb-2 sm:-mb-2 lg:-mb-16"
+              className="flex items-center justify-center mb-2 sm:mb-3 lg:mb-4 mt-2 sm:mt-3 lg:mt-4"
             >
               <Image 
-                src="/logo.png" 
+                src="/Quix/Quix text (logo).png" 
                 alt="Quix Logo" 
-                width={480} 
-                height={480}
-                className="h-28 sm:h-36 md:h-44 lg:h-56 w-auto"
+                width={600} 
+                height={200}
+                className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto"
                 priority
               />
             </motion.div>

@@ -157,14 +157,14 @@ const Home = () => {
           >
             <motion.div 
               variants={snapIn}
-              className="flex items-center justify-center -mb-2 sm:-mb-2 lg:-mb-16"
+              className="flex items-center justify-center mb-2 sm:mb-3 lg:mb-4 mt-2 sm:mt-3 lg:mt-4"
             >
               <Image 
-                src="/logo.png" 
+                src="/Quix/Quix text (logo).png" 
                 alt="Quix Logo" 
-                width={480} 
-                height={480}
-                className="h-28 sm:h-36 md:h-44 lg:h-56 w-auto"
+                width={600} 
+                height={200}
+                className="h-32 sm:h-40 md:h-48 lg:h-56 xl:h-64 w-auto"
                 priority
               />
             </motion.div>
@@ -327,8 +327,8 @@ const Home = () => {
 
   {/* How It Works */}
 <section className="py-16 sm:py-24 lg:py-32 bg-green-50 relative">
-  {/* Excel grid background */}
-  <div className="absolute inset-0 opacity-8">
+  {/* Subtle grid overlay */}
+  <div className="absolute inset-0 opacity-5">
     <div 
       className="w-full h-full"
       style={{
@@ -336,7 +336,7 @@ const Home = () => {
           linear-gradient(to right, #22c55e 1px, transparent 1px),
           linear-gradient(to bottom, #22c55e 1px, transparent 1px)
         `,
-        backgroundSize: '50px 40px'
+        backgroundSize: '60px 45px'
       }}
     />
   </div>
