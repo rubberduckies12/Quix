@@ -418,9 +418,9 @@ const About = () => {
               <h4 className="text-xl sm:text-2xl font-bold text-black mb-2">
                 Chris Thomson
               </h4>
-              <p className="text-green-600 font-semibold mb-3 sm:mb-4">The Growth Driver</p>
+              <p className="text-green-600 font-semibold mb-3 sm:mb-4">The Strategist</p>
               <p className="text-gray-700 leading-relaxed text-sm sm:text-base">
-                Focused on getting Quix into the hands of businesses who need it most. Chris shapes strategy, partnerships, and everything that helps us scale from startup to the MTD bridge everyone uses.
+                Chris is on a mission to get Quix to the businesses that need it most. He shapes our strategy, forges key partnerships, and powers our journey from ambitious startup to the MTD bridge everyone relies on.
               </p>
             </motion.a>
             

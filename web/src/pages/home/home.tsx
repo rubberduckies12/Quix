@@ -201,7 +201,7 @@ const Home = () => {
               variants={fadeInUp}
               className="flex flex-col items-center justify-center mb-8 sm:mb-10 px-2"
             >
-              <Link href="/waitlist/joinWaitlist">
+              <Link href="/waitlist">
                 <motion.div
                   animate={noAnimation ? {} : { scale: [1, 1.05, 1] }}
                   transition={noAnimation ? {} : { duration: 2, repeat: Infinity }}
@@ -469,7 +469,7 @@ const Home = () => {
             variants={fadeInUp}
             className="flex justify-center px-2"
           >
-            <Link href="/waitlist/joinWaitlist">
+            <Link href="/waitlist">
               <div className="inline-flex items-center rounded-2xl bg-white text-green-600 hover:bg-gray-50 px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 text-base sm:text-lg lg:text-xl font-bold shadow-2xl cursor-pointer transition-colors duration-200">
                 <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-2 sm:mr-3" />
                 <span>Bridge the gap - Join our waitlist!</span>
