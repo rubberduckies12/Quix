@@ -102,9 +102,21 @@ const Header = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center group" onClick={closeMenu}>
-            <span className="text-2xl font-bold text-black group-hover:text-green-600 transition-colors duration-200">
-              Quix
-            </span>
+            <motion.div 
+              whileHover={isMobile ? {} : { scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="relative"
+            >
+              <Image 
+                src="/Quix/quix-logo-standard-white-background.png" 
+                alt="Quix Logo" 
+                width={120}
+                height={40}
+                className="h-10 w-auto"
+                priority
+              />
+            </motion.div>
           </Link>
 
           {/* Desktop Navigation */}
