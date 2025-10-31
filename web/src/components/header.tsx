@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Bars3Icon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -108,14 +107,9 @@ const Header = () => {
               transition={{ duration: 0.15 }}
               className="relative"
             >
-              <Image 
-                src="/Quix/quix-logo-standard-white-background.png" 
-                alt="Quix Logo" 
-                width={120}
-                height={40}
-                className="h-10 w-auto"
-                priority
-              />
+              <span className="text-2xl font-bold text-gray-900 hover:text-green-600 transition-colors duration-200">
+                Quix
+              </span>
             </motion.div>
           </Link>
 
