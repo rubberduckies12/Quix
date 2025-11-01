@@ -29,8 +29,8 @@ const validateProcessingRequest = [
     .withMessage('Submission type must be quarterly or annual'),
     
   body('businessType')
-    .isIn(['sole_trader', 'landlord', 'vat_registered'])
-    .withMessage('Business type must be sole_trader, landlord, or vat_registered'),
+    .isIn(['sole_trader', 'landlord'])
+    .withMessage('Business type must be sole_trader or landlord'),
     
   body('quarter')
     .optional()
@@ -55,7 +55,7 @@ const validateProcessingRequest = [
  * 
  * Body:
  * - submissionType: 'quarterly' | 'annual'
- * - businessType: 'sole_trader' | 'landlord' | 'vat_registered'
+ * - businessType: 'sole_trader' | 'landlord'
  * - quarter: 'q1' | 'q2' | 'q3' | 'q4' (required for quarterly)
  * 
  * File: spreadsheet (.xlsx, .xls, .csv)
@@ -131,12 +131,9 @@ router.post('/process',
       currentStage = 'categorization';
       console.log('Step 2: AI categorizing transactions...');
       
-      // Convert business type for categorization (VAT registered is treated as sole trader for categorization)
-      const categorizationBusinessType = businessType === 'vat_registered' ? 'sole_trader' : businessType;
-      
       const categorizationResults = await processSpreadsheetLineByLine(
         uploadResult.rawRows,
-        categorizationBusinessType,
+        businessType,
         progressCallback
       );
 
@@ -161,28 +158,17 @@ router.post('/process',
         submissionResult = await processQuarterlySubmission(
           categorizationResults,
           quarter,
-          categorizationBusinessType,
+          businessType,
           progressCallback
         );
-        
-        // Add VAT information if applicable
-        if (businessType === 'vat_registered') {
-          submissionResult = addVATInformation(submissionResult, categorizationResults);
-        }
-        
       } else {
         // Generate annual submission
         submissionResult = await processAnnualDeclaration(
           categorizationResults,
-          categorizationBusinessType,
+          businessType,
           null, // No quarterly data provided
           progressCallback
         );
-        
-        // Add VAT information if applicable
-        if (businessType === 'vat_registered') {
-          submissionResult = addVATInformation(submissionResult, categorizationResults);
-        }
       }
 
       // STEP 4: Compile final response
@@ -292,7 +278,7 @@ router.get('/config', (req, res) => {
         maxFileSize: '10MB',
         allowedFormats: ['.xlsx', '.xls', '.csv'],
         maxRows: 10000,
-        supportedBusinessTypes: ['sole_trader', 'landlord', 'vat_registered'],
+        supportedBusinessTypes: ['sole_trader', 'landlord'],
         submissionTypes: ['quarterly', 'annual'],
         quarters: ['q1', 'q2', 'q3', 'q4']
       },
@@ -372,67 +358,6 @@ router.post('/validate',
 );
 
 // ====== HELPER FUNCTIONS ======
-
-/**
- * Add VAT information to submission for VAT registered businesses
- * @param {Object} submission - Submission data
- * @param {Object} categorization - Categorization results
- * @returns {Object} Enhanced submission with VAT data
- */
-function addVATInformation(submission, categorization) {
-  // Calculate VAT analysis
-  const vatAnalysis = calculateVATAnalysis(categorization);
-  
-  return {
-    ...submission,
-    vatInformation: {
-      vatRegistered: true,
-      vatAnalysis,
-      vatSummary: {
-        outputVAT: vatAnalysis.outputVAT,
-        inputVAT: vatAnalysis.inputVAT,
-        netVAT: vatAnalysis.outputVAT - vatAnalysis.inputVAT
-      },
-      vatNote: 'VAT calculations are estimates. Please verify with your accountant.'
-    }
-  };
-}
-
-/**
- * Calculate VAT analysis for VAT registered businesses
- * @param {Object} categorization - Categorization results
- * @returns {Object} VAT analysis
- */
-function calculateVATAnalysis(categorization) {
-  const vatAnalysis = {
-    outputVAT: 0, // VAT on sales
-    inputVAT: 0,  // VAT on purchases
-    vatExemptSales: 0,
-    vatExemptPurchases: 0
-  };
-
-  categorization.processedTransactions.forEach(transaction => {
-    if (!transaction.isPersonal && transaction.originalAmount) {
-      const amount = Math.abs(transaction.originalAmount);
-      
-      // Simple VAT calculation (20% standard rate)
-      // This is a basic implementation - real VAT calculation is more complex
-      if (transaction.hmrcCategory === 'turnover' || transaction.hmrcCategory === 'periodAmount') {
-        // Income - calculate output VAT
-        vatAnalysis.outputVAT += amount * 0.2 / 1.2; // Extract VAT from VAT-inclusive amount
-      } else {
-        // Expenses - calculate input VAT
-        vatAnalysis.inputVAT += amount * 0.2 / 1.2; // Extract VAT from VAT-inclusive amount
-      }
-    }
-  });
-
-  // Round to 2 decimal places
-  vatAnalysis.outputVAT = parseFloat(vatAnalysis.outputVAT.toFixed(2));
-  vatAnalysis.inputVAT = parseFloat(vatAnalysis.inputVAT.toFixed(2));
-
-  return vatAnalysis;
-}
 
 /**
  * Generate recommended actions based on processing results
