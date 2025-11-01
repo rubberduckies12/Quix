@@ -1,17 +1,16 @@
-// filepath: /Users/tommyrowe/Documents/development/projects/active/quix/server/src/external/vertex-ai.external.js
 const { AppError } = require('../utils/errors.util');
 const { getCurrentTaxYear } = require('../utils/date.util');
 
 /**
  * Vertex AI External Service
- * Handles all AI interactions for MTD Tax Bridge
+ * Handles all AI interactions for MTD Tax Bridge using Google AI Platform
  */
 class VertexAIService {
   constructor() {
     this.config = {
       // Model configuration
       model: {
-        name: 'gemini-1.5-pro', // Using Gemini for complex tax analysis
+        name: 'gemini-2.0-flash-exp', // Using latest Gemini model
         temperature: 0.1, // Low temperature for consistent tax categorization
         maxTokens: 4096,
         topP: 0.8
@@ -19,9 +18,8 @@ class VertexAIService {
       
       // API configuration
       api: {
-        endpoint: process.env.VERTEX_AI_ENDPOINT || 'https://us-central1-aiplatform.googleapis.com',
-        projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
-        location: process.env.VERTEX_AI_LOCATION || 'us-central1',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+        apiKey: process.env.VERTEX_KEY,
         timeout: 30000
       },
       
@@ -47,7 +45,7 @@ class VertexAIService {
       lastHourRequests: []
     };
 
-    // Initialize API client
+    // Check API key
     this._initializeClient();
   }
 
@@ -56,48 +54,14 @@ class VertexAIService {
    * @private
    */
   _initializeClient() {
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.VERTEX_AI_API_KEY) {
-      console.warn('Vertex AI credentials not configured - AI features will be simulated');
+    if (!this.config.api.apiKey) {
+      console.warn('VERTEX_KEY not found in environment - AI features will be simulated');
       this.isSimulationMode = true;
       return;
     }
 
-    try {
-      // In a real implementation, you would initialize the Google Cloud AI Platform client here
-      // For now, we'll create a mock client for demonstration
-      this.client = this._createMockClient();
-      this.isSimulationMode = false;
-      console.log('Vertex AI client initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize Vertex AI client:', error.message);
-      this.isSimulationMode = true;
-    }
-  }
-
-  /**
-   * Create mock client for demonstration
-   * @private
-   */
-  _createMockClient() {
-    return {
-      generateContent: async (prompt) => {
-        // Simulate API delay
-        await this._delay(Math.random() * 1000 + 500);
-        
-        // Mock response based on prompt type
-        if (prompt.includes('categorize')) {
-          return this._mockCategorizationResponse(prompt);
-        } else if (prompt.includes('quarterly')) {
-          return this._mockQuarterlyResponse(prompt);
-        } else if (prompt.includes('capital allowance')) {
-          return this._mockCapitalAllowanceResponse(prompt);
-        } else if (prompt.includes('annual declaration')) {
-          return this._mockAnnualDeclarationResponse(prompt);
-        }
-        
-        return { text: 'other' };
-      }
-    };
+    this.isSimulationMode = false;
+    console.log('Vertex AI client initialized with API key');
   }
 
   /**
@@ -152,7 +116,7 @@ class VertexAIService {
       });
 
       this._trackRequest();
-      return response.text || response;
+      return response;
 
     } catch (error) {
       console.error('Quarterly formatting failed:', error.message);
@@ -184,7 +148,7 @@ class VertexAIService {
       });
 
       this._trackRequest();
-      return response.text || response;
+      return response;
 
     } catch (error) {
       console.error('Capital allowance analysis failed:', error.message);
@@ -216,7 +180,7 @@ class VertexAIService {
       });
 
       this._trackRequest();
-      return response.text || response;
+      return response;
 
     } catch (error) {
       console.error('Annual declaration formatting failed:', error.message);
@@ -228,7 +192,104 @@ class VertexAIService {
     }
   }
 
-  // ====== SIMULATION METHODS (FOR DEVELOPMENT) ======
+  /**
+   * Make AI request to Google AI Platform
+   * @private
+   */
+  async _makeAIRequest(prompt, options = {}) {
+    try {
+      const url = `${this.config.api.baseUrl}/models/${this.config.model.name}:generateContent?key=${this.config.api.apiKey}`;
+      
+      const requestBody = {
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: this.config.model.temperature,
+          topP: this.config.model.topP,
+          maxOutputTokens: this.config.model.maxTokens
+        }
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(this.config.api.timeout)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        if (response.status === 429) {
+          throw new AppError(
+            'Rate limit exceeded for AI service',
+            429,
+            this.config.errorCodes.RATE_LIMIT_EXCEEDED
+          );
+        } else if (response.status === 403) {
+          throw new AppError(
+            'AI service quota exceeded or invalid API key',
+            403,
+            this.config.errorCodes.QUOTA_EXCEEDED
+          );
+        } else {
+          throw new AppError(
+            `AI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`,
+            response.status,
+            this.config.errorCodes.MODEL_UNAVAILABLE
+          );
+        }
+      }
+
+      const data = await response.json();
+      
+      // Extract text from Google AI Platform response structure
+      if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts[0]) {
+        return data.candidates[0].content.parts[0].text;
+      } else {
+        throw new Error('Invalid response structure from AI API');
+      }
+
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      
+      if (error.name === 'AbortError') {
+        throw new AppError(
+          'AI request timeout',
+          408,
+          this.config.errorCodes.MODEL_UNAVAILABLE
+        );
+      }
+      
+      throw new AppError(
+        `AI service error: ${error.message}`,
+        500,
+        this.config.errorCodes.MODEL_UNAVAILABLE
+      );
+    }
+  }
+
+  /**
+   * Extract categorization result from AI response
+   * @private
+   */
+  _extractCategorizationResult(response) {
+    return response.trim();
+  }
+
+  // ====== SIMULATION METHODS (FALLBACK) ======
 
   /**
    * Simulate categorization response
@@ -333,21 +394,16 @@ class VertexAIService {
           allowanceRate: 1.00,
           recommendedAllowance: 1500.00,
           reasoning: "Business computer equipment qualifies for 100% AIA"
-        },
-        {
-          transactionId: "txn_demo_2",
-          description: "Office furniture",
-          amount: 800.00,
-          allowanceType: "annualInvestmentAllowance",
-          allowanceRate: 1.00,
-          recommendedAllowance: 800.00,
-          reasoning: "Business furniture qualifies for AIA"
         }
       ],
       totalsByCategory: {
-        annualInvestmentAllowance: 2300.00,
+        annualInvestmentAllowance: 1500.00,
         capitalAllowanceMainPool: 0.00,
-        capitalAllowanceSpecialRatePool: 0.00
+        capitalAllowanceSpecialRatePool: 0.00,
+        zeroEmissionGoodsVehicle: 0.00,
+        businessPremisesRenovationAllowance: 0.00,
+        enhancedCapitalAllowance: 0.00,
+        allowanceOnSales: 0.00
       },
       manualReviewRequired: []
     });
@@ -372,16 +428,16 @@ class VertexAIService {
         },
         allowances: {
           annualInvestmentAllowance: 0.00,
-          otherCapitalAllowance: 0.00,
-          costOfReplacingDomesticGoods: 300.00,
-          zeroEmissionsCarAllowance: 0.00,
           businessPremisesRenovationAllowance: 0.00,
-          replacementOfDomesticGoodsAllowance: 0.00
+          zeroEmissionGoodsVehicle: 0.00,
+          enhancedCapitalAllowance: 0.00,
+          allowanceOnSales: 0.00,
+          other: 0.00
         },
         summary: {
           totalAnnualIncome: 9600.00,
           totalAnnualExpenses: 8600.00,
-          totalCapitalAllowances: 300.00,
+          totalCapitalAllowances: 0.00,
           totalAdjustments: 1000.00,
           netProfitBeforeAllowances: 1000.00,
           netProfitAfterAllowances: 0.00
@@ -403,14 +459,13 @@ class VertexAIService {
           goodsAndServicesOwnUse: 0.00
         },
         allowances: {
-          annualInvestmentAllowance: 2300.00,
+          annualInvestmentAllowance: 1500.00,
           capitalAllowanceMainPool: 0.00,
           capitalAllowanceSpecialRatePool: 0.00,
           zeroEmissionGoodsVehicle: 0.00,
           businessPremisesRenovationAllowance: 0.00,
           enhancedCapitalAllowance: 0.00,
-          allowanceOnSales: 0.00,
-          capitalAllowanceSingleAssetPool: 0.00
+          allowanceOnSales: 0.00
         },
         nonFinancials: {
           businessDetailsChangedRecently: false,
@@ -419,67 +474,16 @@ class VertexAIService {
         summary: {
           totalAnnualIncome: 62000.00,
           totalAnnualExpenses: 38000.00,
-          totalCapitalAllowances: 2300.00,
+          totalCapitalAllowances: 1500.00,
           totalAdjustments: 0.00,
           netProfitBeforeAllowances: 24000.00,
-          netProfitAfterAllowances: 21700.00
+          netProfitAfterAllowances: 22500.00
         }
       });
     }
   }
 
   // ====== UTILITY METHODS ======
-
-  /**
-   * Make AI request to Vertex AI
-   * @private
-   */
-  async _makeAIRequest(prompt, options = {}) {
-    try {
-      const requestConfig = {
-        prompt,
-        temperature: this.config.model.temperature,
-        maxTokens: this.config.model.maxTokens,
-        topP: this.config.model.topP,
-        timeout: options.timeout || this.config.api.timeout
-      };
-
-      // In a real implementation, this would make an actual API call to Vertex AI
-      const response = await this.client.generateContent(prompt);
-      
-      return response;
-
-    } catch (error) {
-      if (error.code === 429) {
-        throw new AppError(
-          'Rate limit exceeded for AI service',
-          429,
-          this.config.errorCodes.RATE_LIMIT_EXCEEDED
-        );
-      } else if (error.code === 403) {
-        throw new AppError(
-          'AI service quota exceeded',
-          403,
-          this.config.errorCodes.QUOTA_EXCEEDED
-        );
-      } else {
-        throw new AppError(
-          `AI service error: ${error.message}`,
-          500,
-          this.config.errorCodes.MODEL_UNAVAILABLE
-        );
-      }
-    }
-  }
-
-  /**
-   * Extract categorization result from AI response
-   * @private
-   */
-  _extractCategorizationResult(response) {
-    const text = response.text || response;
-    return text.trim();
-  }
 
   /**
    * Check rate limiting
