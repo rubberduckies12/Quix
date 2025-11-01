@@ -1,0 +1,847 @@
+// filepath: /Users/tommyrowe/Documents/development/projects/active/quix/server/src/services/annual-submission.service.js
+const { AppError, ValidationError } = require('../utils/errors.util');
+const { formatForDisplay, getCurrentTaxYear } = require('../utils/date.util');
+const { processSpreadsheetLineByLine } = require('../utils/categorization.util');
+const vertexAI = require('../external/vertex-ai.external');
+
+/**
+ * MTD Annual Submission Service
+ * Processes full year transactions and creates annual declaration with capital allowances
+ */
+class AnnualSubmissionService {
+  constructor() {
+    this.config = {
+      // Annual submission deadline
+      annualDeadline: '31 January',
+      
+      // HMRC Annual Declaration Categories
+      hmrcAnnualCategories: {
+        selfEmployment: {
+          // Year-end adjustments
+          adjustments: {
+            includedNonTaxableProfits: 'Non-taxable profits included in business income',
+            basisAdjustment: 'Basis period adjustment',
+            overlapReliefUsed: 'Overlap relief used this period',
+            accountingAdjustment: 'Accounting period adjustment',
+            averagingAdjustment: 'Averaging adjustment (for farmers)',
+            lossesBroughtForward: 'Losses brought forward from earlier years',
+            outstandingBusinessIncome: 'Outstanding business income (work in progress)',
+            balancingChargeBPRA: 'Balancing charge on business premises renovation allowance',
+            balancingChargeOther: 'Other balancing charges',
+            goodsAndServicesOwnUse: 'Goods and services for your own use'
+          },
+          
+          // Capital allowances (the big one!)
+          allowances: {
+            annualInvestmentAllowance: 'Annual Investment Allowance (AIA) - Equipment/computers up to £1m',
+            capitalAllowanceMainPool: 'Capital allowances main pool (18% writing down allowance)',
+            capitalAllowanceSpecialRatePool: 'Capital allowances special rate pool (6% writing down allowance)',
+            zeroEmissionGoodsVehicle: 'Zero emission goods vehicle allowance',
+            businessPremisesRenovationAllowance: 'Business premises renovation allowance',
+            enhancedCapitalAllowance: 'Enhanced capital allowances',
+            allowanceOnSales: 'Allowances on sale or cessation of business use',
+            capitalAllowanceSingleAssetPool: 'Capital allowances on single asset pools'
+          },
+          
+          // Non-financial declarations
+          nonFinancials: {
+            businessDetailsChangedRecently: 'Business details changed in the last 2 years',
+            class4NicsExemptionReason: 'Class 4 National Insurance exemption reason'
+          }
+        },
+        
+        property: {
+          // Property adjustments
+          adjustments: {
+            privateUseAdjustment: 'Private use adjustment',
+            balancingCharge: 'Balancing charge',
+            periodOfGraceAdjustment: 'Period of grace adjustment',
+            propertyIncomeAllowance: 'Property income allowance (£1,000 maximum)',
+            renovationAllowanceBalancingCharge: 'Renovation allowance balancing charge'
+          },
+          
+          // Property allowances
+          allowances: {
+            annualInvestmentAllowance: 'Annual Investment Allowance for furnished holiday lettings',
+            otherCapitalAllowance: 'Other capital allowances',
+            costOfReplacingDomesticGoods: 'Cost of replacing domestic goods',
+            zeroEmissionsCarAllowance: 'Zero emissions car allowance',
+            businessPremisesRenovationAllowance: 'Business premises renovation allowance',
+            replacementOfDomesticGoodsAllowance: 'Replacement of domestic goods allowance'
+          }
+        }
+      },
+
+      // Capital allowance thresholds and rates
+      capitalAllowances: {
+        annualInvestmentAllowance: {
+          threshold: 1000000.00, // £1m AIA limit
+          rate: 1.00 // 100% first year allowance
+        },
+        mainPool: {
+          rate: 0.18 // 18% writing down allowance
+        },
+        specialRatePool: {
+          rate: 0.06 // 6% writing down allowance
+        },
+        propertyIncomeAllowance: {
+          threshold: 1000.00 // £1,000 property allowance
+        }
+      },
+
+      // AI configuration
+      aiConfig: {
+        maxRetries: 3,
+        timeoutMs: 30000 // Longer timeout for complex annual processing
+      },
+
+      // Error codes
+      errorCodes: {
+        INVALID_BUSINESS_TYPE: 'INVALID_BUSINESS_TYPE',
+        QUARTERLY_DATA_INCOMPLETE: 'QUARTERLY_DATA_INCOMPLETE',
+        AI_ANNUAL_FORMATTING_FAILED: 'AI_ANNUAL_FORMATTING_FAILED',
+        CAPITAL_ALLOWANCE_CALCULATION_FAILED: 'CAPITAL_ALLOWANCE_CALCULATION_FAILED',
+        ANNUAL_DECLARATION_FAILED: 'ANNUAL_DECLARATION_FAILED'
+      }
+    };
+  }
+
+  /**
+   * Process full year spreadsheet and create annual declaration
+   * @param {Array} spreadsheetData - Full year transaction data
+   * @param {string} businessType - 'sole_trader' or 'landlord'
+   * @param {Object} quarterlyData - Optional quarterly submission data for validation
+   * @param {Function} progressCallback - Progress callback
+   * @returns {Object} Complete annual declaration
+   */
+  async processAnnualDeclaration(spreadsheetData, businessType = 'sole_trader', quarterlyData = null, progressCallback = null) {
+    try {
+      this._validateBusinessType(businessType);
+      this._validateSpreadsheetData(spreadsheetData);
+
+      console.log(`Starting annual declaration processing for ${businessType}`);
+
+      // Step 1: Categorize all transactions for the full year
+      const categorizationResults = await processSpreadsheetLineByLine(
+        spreadsheetData,
+        businessType,
+        (progress) => {
+          if (progressCallback) {
+            progressCallback({
+              ...progress,
+              stage: 'categorization',
+              stageDescription: 'Categorizing full year transactions with AI'
+            });
+          }
+        }
+      );
+
+      // Step 2: Identify capital allowance items using AI
+      const capitalAllowanceItems = await this._identifyCapitalAllowanceItems(
+        categorizationResults,
+        businessType
+      );
+
+      if (progressCallback) {
+        progressCallback({
+          stage: 'capital_allowances',
+          stageDescription: 'Processing capital allowances',
+          completed: 50,
+          total: 100,
+          percentage: 50
+        });
+      }
+
+      // Step 3: Use AI to format annual declaration
+      const annualDeclaration = await this._formatAnnualDeclaration(
+        categorizationResults,
+        capitalAllowanceItems,
+        businessType,
+        quarterlyData
+      );
+
+      // Step 4: Calculate final annual submission
+      const finalAnnualSubmission = this._finalizeAnnualSubmission(
+        annualDeclaration,
+        businessType,
+        categorizationResults,
+        capitalAllowanceItems
+      );
+
+      if (progressCallback) {
+        progressCallback({
+          stage: 'finalization',
+          stageDescription: 'Finalizing annual declaration',
+          completed: 100,
+          total: 100,
+          percentage: 100
+        });
+      }
+
+      console.log(`Annual declaration processing complete`);
+      return finalAnnualSubmission;
+
+    } catch (error) {
+      console.error('Annual declaration processing failed:', error.message);
+      throw new AppError(
+        `Failed to process annual declaration: ${error.message}`,
+        500,
+        this.config.errorCodes.ANNUAL_DECLARATION_FAILED
+      );
+    }
+  }
+
+  /**
+   * Identify capital allowance items using AI
+   * @param {Object} categorizationResults - Categorized transactions
+   * @param {string} businessType - Business type
+   * @returns {Object} Capital allowance analysis
+   */
+  async _identifyCapitalAllowanceItems(categorizationResults, businessType) {
+    const prompt = this._createCapitalAllowancePrompt(categorizationResults, businessType);
+    
+    let lastError;
+    for (let attempt = 1; attempt <= this.config.aiConfig.maxRetries; attempt++) {
+      try {
+        const aiResponse = await vertexAI.analyzeCapitalAllowances(prompt, {
+          timeout: this.config.aiConfig.timeoutMs,
+          businessType
+        });
+
+        const capitalAllowanceAnalysis = this._parseCapitalAllowanceResponse(aiResponse, businessType);
+        
+        if (capitalAllowanceAnalysis) {
+          return capitalAllowanceAnalysis;
+        } else {
+          throw new Error('AI returned invalid capital allowance analysis');
+        }
+
+      } catch (error) {
+        lastError = error;
+        console.warn(`AI capital allowance analysis attempt ${attempt} failed:`, error.message);
+        
+        if (attempt < this.config.aiConfig.maxRetries) {
+          await this._delay(2000 * attempt);
+        }
+      }
+    }
+
+    throw new AppError(
+      `AI capital allowance analysis failed after ${this.config.aiConfig.maxRetries} attempts: ${lastError.message}`,
+      500,
+      this.config.errorCodes.CAPITAL_ALLOWANCE_CALCULATION_FAILED
+    );
+  }
+
+  /**
+   * Create AI prompt for capital allowance identification
+   * @param {Object} categorizationResults - Categorized transactions
+   * @param {string} businessType - Business type
+   * @returns {string} AI prompt
+   */
+  _createCapitalAllowancePrompt(categorizationResults, businessType) {
+    const businessContext = businessType === 'landlord' 
+      ? 'UK property rental business'
+      : 'UK sole trader self-employment business';
+
+    return `You are an expert UK tax advisor analyzing business transactions to identify capital allowance items for HMRC annual declaration.
+
+BUSINESS CONTEXT: ${businessContext}
+TAX YEAR: ${getCurrentTaxYear()}
+
+TASK: Analyze the categorized transactions below and identify items eligible for capital allowances.
+
+TRANSACTION DATA:
+${JSON.stringify(categorizationResults.processedTransactions, null, 2)}
+
+CAPITAL ALLOWANCE RULES:
+
+For Self-Employment:
+1. ANNUAL INVESTMENT ALLOWANCE (AIA) - 100% relief up to £1,000,000:
+   - Computers, laptops, software, office equipment
+   - Machinery, tools, plant
+   - Business furniture, fixtures
+   - Commercial vehicles under 2,040kg
+
+2. MAIN POOL (18% writing down allowance):
+   - Cars with CO2 emissions 51-110g/km
+   - General business equipment over AIA limit
+   - Second-hand equipment
+
+3. SPECIAL RATE POOL (6% writing down allowance):
+   - Cars with CO2 emissions over 110g/km
+   - Integral features (air conditioning, lifts)
+   - Long-life assets (25+ year life)
+
+For Property Business:
+1. FURNISHED HOLIDAY LETTINGS AIA:
+   - Furniture, appliances for holiday lets
+   - Equipment for property maintenance
+
+2. REPLACEMENT OF DOMESTIC GOODS:
+   - Furniture, furnishings, household appliances
+   - For normal residential lettings
+
+ANALYSIS REQUIREMENTS:
+1. Identify transactions that qualify for capital allowances
+2. Categorize by allowance type (AIA, Main Pool, Special Rate Pool)
+3. Calculate recommended allowance amounts
+4. Flag any items needing manual review
+5. Exclude repairs, maintenance, and running costs
+
+RESPONSE FORMAT:
+Return JSON with this structure:
+{
+  "capitalAllowanceItems": [
+    {
+      "transactionId": "txn_id",
+      "description": "Item description",
+      "amount": 1500.00,
+      "allowanceType": "annualInvestmentAllowance",
+      "allowanceRate": 1.00,
+      "recommendedAllowance": 1500.00,
+      "reasoning": "Why this qualifies for AIA"
+    }
+  ],
+  "totalsByCategory": {
+    "annualInvestmentAllowance": 5000.00,
+    "capitalAllowanceMainPool": 2000.00,
+    "capitalAllowanceSpecialRatePool": 1000.00
+  },
+  "manualReviewRequired": [
+    {
+      "transactionId": "txn_id",
+      "reason": "Unclear if business or personal use"
+    }
+  ]
+}
+
+Only include items that clearly qualify for capital allowances. When in doubt, flag for manual review.`;
+  }
+
+  /**
+   * Parse AI capital allowance response
+   * @param {string} aiResponse - AI response
+   * @param {string} businessType - Business type
+   * @returns {Object} Parsed capital allowance data
+   */
+  _parseCapitalAllowanceResponse(aiResponse, businessType) {
+    try {
+      let cleanedResponse = aiResponse.trim();
+      cleanedResponse = cleanedResponse.replace(/```json\s*|\s*```/g, '');
+      cleanedResponse = cleanedResponse.replace(/```\s*|\s*```/g, '');
+      
+      const parsedData = JSON.parse(cleanedResponse);
+      
+      // Validate structure
+      if (!parsedData.capitalAllowanceItems || !Array.isArray(parsedData.capitalAllowanceItems)) {
+        throw new Error('Missing or invalid capitalAllowanceItems array');
+      }
+
+      if (!parsedData.totalsByCategory || typeof parsedData.totalsByCategory !== 'object') {
+        throw new Error('Missing or invalid totalsByCategory object');
+      }
+
+      // Format amounts
+      parsedData.capitalAllowanceItems = parsedData.capitalAllowanceItems.map(item => ({
+        ...item,
+        amount: parseFloat(Number(item.amount || 0).toFixed(2)),
+        allowanceRate: parseFloat(Number(item.allowanceRate || 0).toFixed(2)),
+        recommendedAllowance: parseFloat(Number(item.recommendedAllowance || 0).toFixed(2))
+      }));
+
+      // Format totals
+      Object.keys(parsedData.totalsByCategory).forEach(key => {
+        parsedData.totalsByCategory[key] = parseFloat(Number(parsedData.totalsByCategory[key] || 0).toFixed(2));
+      });
+
+      return parsedData;
+
+    } catch (error) {
+      throw new Error(`Failed to parse capital allowance response: ${error.message}`);
+    }
+  }
+
+  /**
+   * Format annual declaration using AI
+   * @param {Object} categorizationResults - Categorized transactions
+   * @param {Object} capitalAllowanceItems - Capital allowance analysis
+   * @param {string} businessType - Business type
+   * @param {Object} quarterlyData - Quarterly data for validation
+   * @returns {Object} Annual declaration format
+   */
+  async _formatAnnualDeclaration(categorizationResults, capitalAllowanceItems, businessType, quarterlyData) {
+    const prompt = this._createAnnualDeclarationPrompt(
+      categorizationResults,
+      capitalAllowanceItems,
+      businessType,
+      quarterlyData
+    );
+
+    let lastError;
+    for (let attempt = 1; attempt <= this.config.aiConfig.maxRetries; attempt++) {
+      try {
+        const aiResponse = await vertexAI.formatAnnualDeclaration(prompt, {
+          timeout: this.config.aiConfig.timeoutMs,
+          businessType
+        });
+
+        const annualDeclaration = this._parseAnnualDeclarationResponse(aiResponse, businessType);
+        
+        if (annualDeclaration && this._validateAnnualDeclarationFormat(annualDeclaration, businessType)) {
+          return annualDeclaration;
+        } else {
+          throw new Error('AI returned invalid annual declaration format');
+        }
+
+      } catch (error) {
+        lastError = error;
+        console.warn(`AI annual declaration formatting attempt ${attempt} failed:`, error.message);
+        
+        if (attempt < this.config.aiConfig.maxRetries) {
+          await this._delay(2000 * attempt);
+        }
+      }
+    }
+
+    throw new AppError(
+      `AI annual declaration formatting failed after ${this.config.aiConfig.maxRetries} attempts: ${lastError.message}`,
+      500,
+      this.config.errorCodes.AI_ANNUAL_FORMATTING_FAILED
+    );
+  }
+
+  /**
+   * Create AI prompt for annual declaration formatting
+   * @param {Object} categorizationResults - Categorized transactions
+   * @param {Object} capitalAllowanceItems - Capital allowance analysis
+   * @param {string} businessType - Business type
+   * @param {Object} quarterlyData - Quarterly data
+   * @returns {string} AI prompt
+   */
+  _createAnnualDeclarationPrompt(categorizationResults, capitalAllowanceItems, businessType, quarterlyData) {
+    const businessContext = businessType === 'landlord' 
+      ? 'UK property rental business'
+      : 'UK sole trader self-employment business';
+
+    const requiredFormat = this._getAnnualDeclarationFormat(businessType);
+
+    return `You are an expert UK tax advisor creating an annual declaration for HMRC Making Tax Digital.
+
+BUSINESS CONTEXT: ${businessContext}
+TAX YEAR: ${getCurrentTaxYear()}
+SUBMISSION DEADLINE: 31 January
+
+TASK: Create a complete annual declaration using the categorized transactions and capital allowance analysis.
+
+CATEGORIZED TRANSACTION DATA:
+${JSON.stringify(categorizationResults, null, 2)}
+
+CAPITAL ALLOWANCE ANALYSIS:
+${JSON.stringify(capitalAllowanceItems, null, 2)}
+
+${quarterlyData ? `QUARTERLY DATA FOR VALIDATION:
+${JSON.stringify(quarterlyData, null, 2)}` : 'No quarterly data provided for validation'}
+
+REQUIRED ANNUAL DECLARATION FORMAT:
+${JSON.stringify(requiredFormat, null, 2)}
+
+PROCESSING RULES:
+1. Confirm quarterly data is complete (if provided)
+2. Apply capital allowances from the analysis
+3. Set year-end adjustments to 0.00 unless specific items identified
+4. Include all allowance categories even if 0.00
+5. Calculate total annual income and expenses
+6. Round all amounts to 2 decimal places
+7. Flag any items requiring manual review
+
+IMPORTANT ANNUAL-SPECIFIC ITEMS:
+- Capital allowances are the main focus (equipment, computers, vehicles purchased)
+- Year-end adjustments for corrections or accounting changes
+- Private use adjustments for mixed business/personal items
+- Property income allowance (£1,000) for landlords if applicable
+
+RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no explanatory text.`;
+  }
+
+  /**
+   * Get annual declaration format template
+   * @param {string} businessType - Business type
+   * @returns {Object} Format template
+   */
+  _getAnnualDeclarationFormat(businessType) {
+    if (businessType === 'landlord') {
+      return {
+        quarterlyDataComplete: true,
+        adjustments: {
+          privateUseAdjustment: 0.00,
+          balancingCharge: 0.00,
+          periodOfGraceAdjustment: 0.00,
+          propertyIncomeAllowance: 0.00,
+          renovationAllowanceBalancingCharge: 0.00
+        },
+        allowances: {
+          annualInvestmentAllowance: 0.00,
+          otherCapitalAllowance: 0.00,
+          costOfReplacingDomesticGoods: 0.00,
+          zeroEmissionsCarAllowance: 0.00,
+          businessPremisesRenovationAllowance: 0.00,
+          replacementOfDomesticGoodsAllowance: 0.00
+        },
+        summary: {
+          totalAnnualIncome: 0.00,
+          totalAnnualExpenses: 0.00,
+          totalCapitalAllowances: 0.00,
+          totalAdjustments: 0.00,
+          netProfitBeforeAllowances: 0.00,
+          netProfitAfterAllowances: 0.00
+        }
+      };
+    } else {
+      return {
+        quarterlyDataComplete: true,
+        adjustments: {
+          includedNonTaxableProfits: 0.00,
+          basisAdjustment: 0.00,
+          overlapReliefUsed: 0.00,
+          accountingAdjustment: 0.00,
+          averagingAdjustment: 0.00,
+          lossesBroughtForward: 0.00,
+          outstandingBusinessIncome: 0.00,
+          balancingChargeBPRA: 0.00,
+          balancingChargeOther: 0.00,
+          goodsAndServicesOwnUse: 0.00
+        },
+        allowances: {
+          annualInvestmentAllowance: 0.00,
+          capitalAllowanceMainPool: 0.00,
+          capitalAllowanceSpecialRatePool: 0.00,
+          zeroEmissionGoodsVehicle: 0.00,
+          businessPremisesRenovationAllowance: 0.00,
+          enhancedCapitalAllowance: 0.00,
+          allowanceOnSales: 0.00,
+          capitalAllowanceSingleAssetPool: 0.00
+        },
+        nonFinancials: {
+          businessDetailsChangedRecently: false,
+          class4NicsExemptionReason: null
+        },
+        summary: {
+          totalAnnualIncome: 0.00,
+          totalAnnualExpenses: 0.00,
+          totalCapitalAllowances: 0.00,
+          totalAdjustments: 0.00,
+          netProfitBeforeAllowances: 0.00,
+          netProfitAfterAllowances: 0.00
+        }
+      };
+    }
+  }
+
+  /**
+   * Parse annual declaration response
+   * @param {string} aiResponse - AI response
+   * @param {string} businessType - Business type
+   * @returns {Object} Parsed annual declaration
+   */
+  _parseAnnualDeclarationResponse(aiResponse, businessType) {
+    try {
+      let cleanedResponse = aiResponse.trim();
+      cleanedResponse = cleanedResponse.replace(/```json\s*|\s*```/g, '');
+      cleanedResponse = cleanedResponse.replace(/```\s*|\s*```/g, '');
+      
+      const parsedData = JSON.parse(cleanedResponse);
+      
+      // Validate required sections exist
+      if (!parsedData.adjustments || !parsedData.allowances) {
+        throw new Error('Missing required sections (adjustments or allowances)');
+      }
+
+      // Format all amounts to 2 decimal places
+      const formattedData = this._formatAnnualAmounts(parsedData);
+      
+      return formattedData;
+
+    } catch (error) {
+      throw new Error(`Failed to parse annual declaration response: ${error.message}`);
+    }
+  }
+
+  /**
+   * Validate annual declaration format
+   * @param {Object} declaration - Annual declaration
+   * @param {string} businessType - Business type
+   * @returns {boolean} Is valid
+   */
+  _validateAnnualDeclarationFormat(declaration, businessType) {
+    if (!declaration || typeof declaration !== 'object') {
+      return false;
+    }
+
+    const requiredFormat = this._getAnnualDeclarationFormat(businessType);
+    
+    // Check adjustments
+    if (!declaration.adjustments || typeof declaration.adjustments !== 'object') {
+      return false;
+    }
+
+    // Check allowances
+    if (!declaration.allowances || typeof declaration.allowances !== 'object') {
+      return false;
+    }
+
+    // Validate key fields exist
+    for (const key of Object.keys(requiredFormat.adjustments)) {
+      if (!(key in declaration.adjustments)) {
+        return false;
+      }
+    }
+
+    for (const key of Object.keys(requiredFormat.allowances)) {
+      if (!(key in declaration.allowances)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Format all amounts in annual declaration
+   * @param {Object} data - Annual declaration data
+   * @returns {Object} Formatted data
+   */
+  _formatAnnualAmounts(data) {
+    const formatted = JSON.parse(JSON.stringify(data));
+
+    // Format adjustments
+    if (formatted.adjustments) {
+      Object.keys(formatted.adjustments).forEach(key => {
+        if (typeof formatted.adjustments[key] === 'number') {
+          formatted.adjustments[key] = parseFloat(Number(formatted.adjustments[key]).toFixed(2));
+        }
+      });
+    }
+
+    // Format allowances
+    if (formatted.allowances) {
+      Object.keys(formatted.allowances).forEach(key => {
+        if (typeof formatted.allowances[key] === 'number') {
+          formatted.allowances[key] = parseFloat(Number(formatted.allowances[key]).toFixed(2));
+        }
+      });
+    }
+
+    // Calculate and format summary
+    if (formatted.adjustments && formatted.allowances) {
+      const totalAdjustments = Object.values(formatted.adjustments)
+        .filter(val => typeof val === 'number')
+        .reduce((sum, val) => sum + Math.abs(val), 0);
+
+      const totalAllowances = Object.values(formatted.allowances)
+        .filter(val => typeof val === 'number')
+        .reduce((sum, val) => sum + val, 0);
+
+      if (!formatted.summary) {
+        formatted.summary = {};
+      }
+
+      formatted.summary.totalAdjustments = parseFloat(totalAdjustments.toFixed(2));
+      formatted.summary.totalCapitalAllowances = parseFloat(totalAllowances.toFixed(2));
+    }
+
+    return formatted;
+  }
+
+  /**
+   * Finalize annual submission with metadata
+   * @param {Object} annualDeclaration - AI-formatted declaration
+   * @param {string} businessType - Business type
+   * @param {Object} categorizationResults - Categorization results
+   * @param {Object} capitalAllowanceItems - Capital allowance analysis
+   * @returns {Object} Final annual submission
+   */
+  _finalizeAnnualSubmission(annualDeclaration, businessType, categorizationResults, capitalAllowanceItems) {
+    return {
+      metadata: {
+        submissionType: 'annual',
+        submissionDeadline: this.config.annualDeadline,
+        businessType,
+        taxYear: getCurrentTaxYear(),
+        generatedDate: new Date().toISOString(),
+        totalTransactionsProcessed: categorizationResults.totalRows,
+        successfullyProcessed: categorizationResults.summary.successful,
+        personalTransactionsExcluded: categorizationResults.summary.personal,
+        errorsEncountered: categorizationResults.summary.errors,
+        manualReviewRequired: categorizationResults.summary.manualReviewRequired || 0,
+        capitalAllowanceItemsIdentified: capitalAllowanceItems.capitalAllowanceItems.length,
+        version: '1.0'
+      },
+      declaration: {
+        quarterlyDataComplete: annualDeclaration.quarterlyDataComplete,
+        adjustments: annualDeclaration.adjustments,
+        allowances: annualDeclaration.allowances,
+        nonFinancials: annualDeclaration.nonFinancials || {},
+        summary: annualDeclaration.summary
+      },
+      capitalAllowanceDetails: {
+        itemsAnalyzed: capitalAllowanceItems.capitalAllowanceItems,
+        totalsByCategory: capitalAllowanceItems.totalsByCategory,
+        manualReviewRequired: capitalAllowanceItems.manualReviewRequired || [],
+        allowanceRules: this.config.capitalAllowances
+      },
+      processingDetails: {
+        fullYearTransactions: categorizationResults.processedTransactions.length,
+        personalTransactions: categorizationResults.personalTransactions.length,
+        errorTransactions: categorizationResults.errors.length,
+        categoryBreakdown: this._generateCategoryBreakdown(categorizationResults.processedTransactions)
+      },
+      complianceNotes: {
+        annualRequirements: [
+          'Confirm all quarterly submissions are complete',
+          'Calculate and claim capital allowances',
+          'Apply any year-end adjustments',
+          'Submit final declaration by 31 January'
+        ],
+        capitalAllowanceInfo: [
+          'Annual Investment Allowance: 100% relief up to £1,000,000',
+          'Main Pool: 18% writing down allowance',
+          'Special Rate Pool: 6% writing down allowance',
+          'Keep receipts for all capital purchases'
+        ],
+        nextSteps: [
+          'Review capital allowance calculations',
+          'Check any items flagged for manual review',
+          'Submit to HMRC by 31 January',
+          'HMRC will calculate Income Tax and Class 4 NI',
+          'Pay balancing payment by 31 January',
+          'Pay first payment on account by 31 January'
+        ],
+        hmrcCalculations: [
+          'Income Tax on total profit (20%, 40%, 45% bands)',
+          'Class 4 National Insurance (9% on profits £12,570-£50,270)',
+          'Personal allowance deduction (£12,570 for 2024-25)',
+          'Payment on account for next year (50% in Jan, 50% in July)'
+        ]
+      }
+    };
+  }
+
+  /**
+   * Generate category breakdown
+   * @param {Array} transactions - Processed transactions
+   * @returns {Object} Category breakdown
+   */
+  _generateCategoryBreakdown(transactions) {
+    const breakdown = {};
+    
+    transactions.forEach(transaction => {
+      if (transaction.hmrcCategory && !transaction.isPersonal) {
+        if (!breakdown[transaction.hmrcCategory]) {
+          breakdown[transaction.hmrcCategory] = {
+            count: 0,
+            totalAmount: 0,
+            description: transaction.categoryDescription
+          };
+        }
+        
+        breakdown[transaction.hmrcCategory].count++;
+        if (transaction.originalAmount) {
+          breakdown[transaction.hmrcCategory].totalAmount += Math.abs(transaction.originalAmount);
+        }
+      }
+    });
+
+    // Format amounts
+    Object.keys(breakdown).forEach(category => {
+      breakdown[category].totalAmount = parseFloat(breakdown[category].totalAmount.toFixed(2));
+    });
+
+    return breakdown;
+  }
+
+  // ====== VALIDATION METHODS ======
+
+  /**
+   * Validate business type
+   * @param {string} businessType - Business type
+   */
+  _validateBusinessType(businessType) {
+    const validTypes = ['sole_trader', 'landlord'];
+    if (!validTypes.includes(businessType)) {
+      throw new ValidationError(
+        `Invalid business type: ${businessType}. Must be one of: ${validTypes.join(', ')}`,
+        [],
+        'businessType'
+      );
+    }
+  }
+
+  /**
+   * Validate spreadsheet data
+   * @param {Array} spreadsheetData - Spreadsheet data
+   */
+  _validateSpreadsheetData(spreadsheetData) {
+    if (!Array.isArray(spreadsheetData) || spreadsheetData.length === 0) {
+      throw new ValidationError('Spreadsheet data must be a non-empty array', [], 'spreadsheetData');
+    }
+  }
+
+  /**
+   * Add processing delay
+   * @private
+   */
+  _delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // ====== PUBLIC API METHODS ======
+
+  /**
+   * Get capital allowance rates and thresholds
+   * @returns {Object} Capital allowance information
+   */
+  getCapitalAllowanceInfo() {
+    return { ...this.config.capitalAllowances };
+  }
+
+  /**
+   * Get annual declaration categories for business type
+   * @param {string} businessType - Business type
+   * @returns {Object} Annual categories
+   */
+  getAnnualCategories(businessType) {
+    this._validateBusinessType(businessType);
+    return this.config.hmrcAnnualCategories[businessType === 'landlord' ? 'property' : 'selfEmployment'];
+  }
+
+  /**
+   * Get annual deadline information
+   * @returns {Object} Deadline information
+   */
+  getAnnualDeadline() {
+    return {
+      deadline: this.config.annualDeadline,
+      taxYear: getCurrentTaxYear(),
+      note: 'Must be submitted AFTER all 4 quarterly submissions are complete'
+    };
+  }
+}
+
+// Create and export singleton instance
+const annualSubmissionService = new AnnualSubmissionService();
+
+module.exports = {
+  AnnualSubmissionService,
+  default: annualSubmissionService,
+  
+  // Export main methods
+  processAnnualDeclaration: (spreadsheetData, businessType, quarterlyData, progressCallback) =>
+    annualSubmissionService.processAnnualDeclaration(spreadsheetData, businessType, quarterlyData, progressCallback),
+  getCapitalAllowanceInfo: () =>
+    annualSubmissionService.getCapitalAllowanceInfo(),
+  getAnnualCategories: (businessType) =>
+    annualSubmissionService.getAnnualCategories(businessType),
+  getAnnualDeadline: () =>
+    annualSubmissionService.getAnnualDeadline()
+};
