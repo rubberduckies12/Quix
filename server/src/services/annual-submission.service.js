@@ -14,6 +14,61 @@ class AnnualSubmissionService {
       // Annual submission deadline
       annualDeadline: '31 January',
       
+      // Complete HMRC Category Codes - EXACT codes required by HMRC
+      hmrcCategories: {
+        selfEmployment: {
+          income: [
+            'turnover',  // Business sales, fees, commission, self-employment income
+            'other'      // Other business income (grants, insurance payouts, etc.)
+          ],
+          expenses: [
+            'costOfGoodsBought',              // Raw materials, stock, goods bought for resale
+            'cisPaymentsToSubcontractors',    // Construction Industry Scheme payments
+            'staffCosts',                     // Wages, salaries, subcontractor payments, employer NICs
+            'travelCosts',                    // Business travel, fuel, parking, hotels (not home to work)
+            'premisesRunningCosts',           // Rent, business rates, heating, lighting, cleaning
+            'maintenanceCosts',               // Repairs and maintenance of property and equipment
+            'adminCosts',                     // Phone, fax, stationery, postage, small equipment
+            'advertisingCosts',               // Advertising, marketing, website costs
+            'businessEntertainmentCosts',     // Entertaining clients, customer hospitality
+            'interestOnBankOtherLoans',       // Business loan interest, hire purchase interest
+            'financialCharges',               // Bank charges, credit card charges, factoring charges
+            'badDebt',                        // Irrecoverable debts written off
+            'professionalFees',               // Accountant, solicitor, architect, surveyor fees
+            'depreciation',                   // Depreciation of equipment and machinery
+            'other'                           // Other allowable business expenses
+          ]
+        },
+        property: {
+          income: [
+            'premiumsOfLeaseGrant',  // Property premiums received
+            'reversePremiums',       // Reverse premiums
+            'periodAmount',          // Rental income received
+            'taxDeducted'            // Tax deducted at source
+          ],
+          expenses: [
+            'premisesRunningCosts',  // Rent, rates, insurance, ground rent
+            'repairsAndMaintenance', // Maintenance, repairs, redecoration
+            'financialCosts',        // Mortgage interest, loan interest
+            'professionalFees',      // Letting agent fees, legal fees, accountant fees
+            'costOfServices',        // Gardening, cleaning, security services
+            'travelCosts',           // Travel to inspect properties
+            'other'                  // Other allowable property expenses
+          ]
+        }
+      },
+
+      // Capital Allowances (Annual Only) - EXACT HMRC codes
+      capitalAllowanceCategories: [
+        'annualInvestmentAllowance',           // Equipment, computers, machinery (up to £1M)
+        'capitalAllowanceMainPool',            // General equipment (18% allowance)
+        'capitalAllowanceSpecialRatePool',     // Integral building features (6% allowance)
+        'zeroEmissionGoodsVehicle',           // Electric vehicles (100% allowance)
+        'businessPremisesRenovationAllowance', // Building renovation costs
+        'enhancedCapitalAllowance',            // Energy-efficient equipment
+        'allowanceOnSales'                     // Balancing allowances/charges on disposals
+      ],
+      
       // HMRC Annual Declaration Categories
       hmrcAnnualCategories: {
         selfEmployment: {
@@ -31,7 +86,7 @@ class AnnualSubmissionService {
             goodsAndServicesOwnUse: 'Goods and services for your own use'
           },
           
-          // Capital allowances (the big one!)
+          // Capital allowances - using EXACT HMRC codes
           allowances: {
             annualInvestmentAllowance: 'Annual Investment Allowance (AIA) - Equipment/computers up to £1m',
             capitalAllowanceMainPool: 'Capital allowances main pool (18% writing down allowance)',
@@ -39,8 +94,7 @@ class AnnualSubmissionService {
             zeroEmissionGoodsVehicle: 'Zero emission goods vehicle allowance',
             businessPremisesRenovationAllowance: 'Business premises renovation allowance',
             enhancedCapitalAllowance: 'Enhanced capital allowances',
-            allowanceOnSales: 'Allowances on sale or cessation of business use',
-            capitalAllowanceSingleAssetPool: 'Capital allowances on single asset pools'
+            allowanceOnSales: 'Allowances on sale or cessation of business use'
           },
           
           // Non-financial declarations
@@ -60,14 +114,14 @@ class AnnualSubmissionService {
             renovationAllowanceBalancingCharge: 'Renovation allowance balancing charge'
           },
           
-          // Property allowances
+          // Property allowances - using available HMRC codes
           allowances: {
             annualInvestmentAllowance: 'Annual Investment Allowance for furnished holiday lettings',
-            otherCapitalAllowance: 'Other capital allowances',
-            costOfReplacingDomesticGoods: 'Cost of replacing domestic goods',
-            zeroEmissionsCarAllowance: 'Zero emissions car allowance',
             businessPremisesRenovationAllowance: 'Business premises renovation allowance',
-            replacementOfDomesticGoodsAllowance: 'Replacement of domestic goods allowance'
+            zeroEmissionGoodsVehicle: 'Zero emissions vehicle allowance',
+            enhancedCapitalAllowance: 'Enhanced capital allowances',
+            allowanceOnSales: 'Balancing allowances/charges on disposals',
+            other: 'Other capital allowances (replacement of domestic goods, etc.)'
           }
         }
       },
@@ -78,11 +132,14 @@ class AnnualSubmissionService {
           threshold: 1000000.00, // £1m AIA limit
           rate: 1.00 // 100% first year allowance
         },
-        mainPool: {
+        capitalAllowanceMainPool: {
           rate: 0.18 // 18% writing down allowance
         },
-        specialRatePool: {
+        capitalAllowanceSpecialRatePool: {
           rate: 0.06 // 6% writing down allowance
+        },
+        zeroEmissionGoodsVehicle: {
+          rate: 1.00 // 100% allowance
         },
         propertyIncomeAllowance: {
           threshold: 1000.00 // £1,000 property allowance
@@ -136,7 +193,7 @@ class AnnualSubmissionService {
         }
       );
 
-      // Step 2: Identify capital allowance items using AI
+      // Step 2: Identify capital allowance items using AI (COMPLEX - needs AI)
       const capitalAllowanceItems = await this._identifyCapitalAllowanceItems(
         categorizationResults,
         businessType
@@ -145,14 +202,14 @@ class AnnualSubmissionService {
       if (progressCallback) {
         progressCallback({
           stage: 'capital_allowances',
-          stageDescription: 'Processing capital allowances',
+          stageDescription: 'Processing capital allowances with AI',
           completed: 50,
           total: 100,
           percentage: 50
         });
       }
 
-      // Step 3: Use AI to format annual declaration
+      // Step 3: Use AI to format annual declaration (COMPLEX - needs AI)
       const annualDeclaration = await this._formatAnnualDeclaration(
         categorizationResults,
         capitalAllowanceItems,
@@ -192,7 +249,7 @@ class AnnualSubmissionService {
   }
 
   /**
-   * Identify capital allowance items using AI
+   * Identify capital allowance items using AI (COMPLEX LOGIC)
    * @param {Object} categorizationResults - Categorized transactions
    * @param {string} businessType - Business type
    * @returns {Object} Capital allowance analysis
@@ -254,6 +311,9 @@ TASK: Analyze the categorized transactions below and identify items eligible for
 TRANSACTION DATA:
 ${JSON.stringify(categorizationResults.processedTransactions, null, 2)}
 
+EXACT HMRC CAPITAL ALLOWANCE CODES TO USE:
+${JSON.stringify(this.config.capitalAllowanceCategories, null, 2)}
+
 CAPITAL ALLOWANCE RULES:
 
 For Self-Employment:
@@ -262,35 +322,50 @@ For Self-Employment:
    - Machinery, tools, plant
    - Business furniture, fixtures
    - Commercial vehicles under 2,040kg
+   HMRC Code: "annualInvestmentAllowance"
 
 2. MAIN POOL (18% writing down allowance):
    - Cars with CO2 emissions 51-110g/km
    - General business equipment over AIA limit
    - Second-hand equipment
+   HMRC Code: "capitalAllowanceMainPool"
 
 3. SPECIAL RATE POOL (6% writing down allowance):
    - Cars with CO2 emissions over 110g/km
    - Integral features (air conditioning, lifts)
    - Long-life assets (25+ year life)
+   HMRC Code: "capitalAllowanceSpecialRatePool"
+
+4. ZERO EMISSION VEHICLES (100% allowance):
+   - Electric cars and vans
+   HMRC Code: "zeroEmissionGoodsVehicle"
+
+5. BUILDING RENOVATION:
+   - Qualifying building renovation costs
+   HMRC Code: "businessPremisesRenovationAllowance"
+
+6. ENHANCED CAPITAL ALLOWANCES:
+   - Energy-efficient equipment
+   HMRC Code: "enhancedCapitalAllowance"
+
+7. DISPOSAL ALLOWANCES:
+   - Balancing allowances/charges on sales
+   HMRC Code: "allowanceOnSales"
 
 For Property Business:
-1. FURNISHED HOLIDAY LETTINGS AIA:
-   - Furniture, appliances for holiday lets
-   - Equipment for property maintenance
-
-2. REPLACEMENT OF DOMESTIC GOODS:
-   - Furniture, furnishings, household appliances
-   - For normal residential lettings
+- Use same codes but focus on property-related equipment
+- Furniture for furnished holiday lettings qualifies for AIA
+- Replacement of domestic goods is handled separately
 
 ANALYSIS REQUIREMENTS:
 1. Identify transactions that qualify for capital allowances
-2. Categorize by allowance type (AIA, Main Pool, Special Rate Pool)
-3. Calculate recommended allowance amounts
+2. Use EXACT HMRC category codes listed above
+3. Calculate recommended allowance amounts based on rates
 4. Flag any items needing manual review
-5. Exclude repairs, maintenance, and running costs
+5. Exclude repairs, maintenance, and running costs (these are expenses)
+6. Look for purchases of equipment, computers, vehicles, machinery
 
-RESPONSE FORMAT:
-Return JSON with this structure:
+RESPONSE FORMAT - Return EXACT JSON structure:
 {
   "capitalAllowanceItems": [
     {
@@ -306,7 +381,11 @@ Return JSON with this structure:
   "totalsByCategory": {
     "annualInvestmentAllowance": 5000.00,
     "capitalAllowanceMainPool": 2000.00,
-    "capitalAllowanceSpecialRatePool": 1000.00
+    "capitalAllowanceSpecialRatePool": 1000.00,
+    "zeroEmissionGoodsVehicle": 0.00,
+    "businessPremisesRenovationAllowance": 0.00,
+    "enhancedCapitalAllowance": 0.00,
+    "allowanceOnSales": 0.00
   },
   "manualReviewRequired": [
     {
@@ -316,7 +395,7 @@ Return JSON with this structure:
   ]
 }
 
-Only include items that clearly qualify for capital allowances. When in doubt, flag for manual review.`;
+IMPORTANT: Only use the exact HMRC category codes I specified. Do not make up new codes.`;
   }
 
   /**
@@ -342,6 +421,13 @@ Only include items that clearly qualify for capital allowances. When in doubt, f
         throw new Error('Missing or invalid totalsByCategory object');
       }
 
+      // Validate capital allowance codes
+      parsedData.capitalAllowanceItems.forEach(item => {
+        if (!this.config.capitalAllowanceCategories.includes(item.allowanceType)) {
+          console.warn(`Invalid capital allowance code: ${item.allowanceType}`);
+        }
+      });
+
       // Format amounts
       parsedData.capitalAllowanceItems = parsedData.capitalAllowanceItems.map(item => ({
         ...item,
@@ -363,7 +449,7 @@ Only include items that clearly qualify for capital allowances. When in doubt, f
   }
 
   /**
-   * Format annual declaration using AI
+   * Format annual declaration using AI (COMPLEX LOGIC)
    * @param {Object} categorizationResults - Categorized transactions
    * @param {Object} capitalAllowanceItems - Capital allowance analysis
    * @param {string} businessType - Business type
@@ -447,19 +533,21 @@ REQUIRED ANNUAL DECLARATION FORMAT:
 ${JSON.stringify(requiredFormat, null, 2)}
 
 PROCESSING RULES:
-1. Confirm quarterly data is complete (if provided)
+1. Sum all regular income/expense transactions by HMRC category
 2. Apply capital allowances from the analysis
-3. Set year-end adjustments to 0.00 unless specific items identified
-4. Include all allowance categories even if 0.00
-5. Calculate total annual income and expenses
-6. Round all amounts to 2 decimal places
-7. Flag any items requiring manual review
+3. Calculate year-end adjustments if needed
+4. Include depreciation amounts (these get replaced by capital allowances)
+5. Apply property income allowance (£1,000) for landlords if beneficial
+6. Calculate total annual income and expenses
+7. Round all amounts to 2 decimal places
+8. Flag any items requiring manual review
 
 IMPORTANT ANNUAL-SPECIFIC ITEMS:
-- Capital allowances are the main focus (equipment, computers, vehicles purchased)
+- Capital allowances replace depreciation for tax purposes
 - Year-end adjustments for corrections or accounting changes
 - Private use adjustments for mixed business/personal items
 - Property income allowance (£1,000) for landlords if applicable
+- Basis period adjustments for changing accounting dates
 
 RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no explanatory text.`;
   }
@@ -482,11 +570,11 @@ RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no
         },
         allowances: {
           annualInvestmentAllowance: 0.00,
-          otherCapitalAllowance: 0.00,
-          costOfReplacingDomesticGoods: 0.00,
-          zeroEmissionsCarAllowance: 0.00,
           businessPremisesRenovationAllowance: 0.00,
-          replacementOfDomesticGoodsAllowance: 0.00
+          zeroEmissionGoodsVehicle: 0.00,
+          enhancedCapitalAllowance: 0.00,
+          allowanceOnSales: 0.00,
+          other: 0.00
         },
         summary: {
           totalAnnualIncome: 0.00,
@@ -519,8 +607,7 @@ RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no
           zeroEmissionGoodsVehicle: 0.00,
           businessPremisesRenovationAllowance: 0.00,
           enhancedCapitalAllowance: 0.00,
-          allowanceOnSales: 0.00,
-          capitalAllowanceSingleAssetPool: 0.00
+          allowanceOnSales: 0.00
         },
         nonFinancials: {
           businessDetailsChangedRecently: false,
@@ -699,7 +786,7 @@ RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no
       complianceNotes: {
         annualRequirements: [
           'Confirm all quarterly submissions are complete',
-          'Calculate and claim capital allowances',
+          'Calculate and claim capital allowances using exact HMRC codes',
           'Apply any year-end adjustments',
           'Submit final declaration by 31 January'
         ],
@@ -707,8 +794,13 @@ RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no
           'Annual Investment Allowance: 100% relief up to £1,000,000',
           'Main Pool: 18% writing down allowance',
           'Special Rate Pool: 6% writing down allowance',
+          'Zero Emission Vehicles: 100% allowance',
           'Keep receipts for all capital purchases'
         ],
+        exactHMRCCodes: {
+          capitalAllowances: this.config.capitalAllowanceCategories,
+          regularCategories: this.config.hmrcCategories
+        },
         nextSteps: [
           'Review capital allowance calculations',
           'Check any items flagged for manual review',
@@ -741,7 +833,8 @@ RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no
           breakdown[transaction.hmrcCategory] = {
             count: 0,
             totalAmount: 0,
-            description: transaction.categoryDescription
+            description: transaction.categoryDescription,
+            isCapitalAllowance: this.config.capitalAllowanceCategories.includes(transaction.hmrcCategory)
           };
         }
         
@@ -816,6 +909,14 @@ RESPONSE FORMAT: Return only the JSON object in the exact format shown above, no
   }
 
   /**
+   * Get capital allowance categories
+   * @returns {Array} Capital allowance categories
+   */
+  getCapitalAllowanceCategories() {
+    return [...this.config.capitalAllowanceCategories];
+  }
+
+  /**
    * Get annual deadline information
    * @returns {Object} Deadline information
    */
@@ -842,6 +943,8 @@ module.exports = {
     annualSubmissionService.getCapitalAllowanceInfo(),
   getAnnualCategories: (businessType) =>
     annualSubmissionService.getAnnualCategories(businessType),
+  getCapitalAllowanceCategories: () =>
+    annualSubmissionService.getCapitalAllowanceCategories(),
   getAnnualDeadline: () =>
     annualSubmissionService.getAnnualDeadline()
 };
