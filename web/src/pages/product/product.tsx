@@ -186,7 +186,7 @@ const Product = () => {
               variants={fadeInUp}
               className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold tracking-tight text-black mb-5 sm:mb-7 leading-tight"
             >
-              HMRC MTD
+              Self Assessment
               <br />
               <span className={`text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-green-700 ${!noAnimation ? 'animate-pulse' : ''}`}>
                 Bridging Tool
@@ -199,14 +199,14 @@ const Product = () => {
             >
               <span className="text-green-600 font-bold">Connect</span> • 
               <span className="text-green-600 font-bold mx-2">Submit</span>• 
-              <span className="text-green-600 font-bold"> Comply</span>
+              <span className="text-green-600 font-bold"> Meet Requirements</span>
             </motion.div>
 
             <motion.p 
               variants={fadeInUp}
               className="text-base sm:text-lg lg:text-xl text-gray-700 mb-7 sm:mb-9 max-w-3xl mx-auto leading-relaxed px-2"
             >
-              Simplify VAT submissions and stay compliant with HMRC&apos;s Making Tax Digital requirements. Connect your spreadsheets directly to HMRC without changing your workflow.
+              Simplify Self Assessment submissions and meet HMRC&apos;s Making Tax Digital requirements. Connect your spreadsheets directly to HMRC without changing your workflow. VAT capabilities included.
             </motion.p>
           </motion.div>
         </div>
@@ -241,7 +241,7 @@ const Product = () => {
               Excel & Google Sheets Compatible
             </h3>
             <p className="text-base sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto px-2">
-              Use your existing spreadsheets — our bridging tool securely connects your VAT data to HMRC without requiring software migration.
+              Use your existing spreadsheets — our bridging tool securely connects your Self Assessment data to HMRC without requiring software migration.
             </p>
           </motion.div>
           
@@ -269,7 +269,7 @@ const Product = () => {
                 Excel & Google Sheets Compatible
               </h4>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                Use your existing spreadsheets — our bridging tool securely connects your VAT data to HMRC without requiring software migration.
+                Use your existing spreadsheets — our bridging tool securely connects your Self Assessment data to HMRC without requiring software migration.
               </p>
             </motion.div>
             
@@ -287,10 +287,10 @@ const Product = () => {
                 <CloudArrowUpIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
               </motion.div>
               <h4 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4">
-                Submit VAT Returns Digitally
+                Submit Self Assessment Returns
               </h4>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                File VAT returns directly to HMRC through our MTD-compliant API. Your submissions are encrypted and verified instantly.
+                File Self Assessment returns directly to HMRC through our MTD-compliant API. Your submissions are encrypted and verified instantly.
               </p>
             </motion.div>
             
@@ -311,7 +311,7 @@ const Product = () => {
                 HMRC Recognised & Secure
               </h4>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                Our tool meets HMRC&apos;s digital record-keeping and submission standards, ensuring your VAT data is accurate and compliant.
+                Our tool meets HMRC&apos;s digital record-keeping and submission standards, ensuring your Self Assessment data is accurate and meets requirements.
               </p>
             </motion.div>
           </motion.div>
@@ -342,12 +342,12 @@ const Product = () => {
             variants={fadeInUp}
             className="text-center mb-12 sm:mb-16 lg:mb-20"
           >
-            <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-green-600 mb-3 sm:mb-4">Full MTD Compliance</h2>
+            <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-green-600 mb-3 sm:mb-4">Full MTD Meeting Requirements</h2>
             <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-6 sm:mb-8 leading-tight">
-              Key Features for Complete Compliance
+              Key Features for Self Assessment & VAT
             </h3>
             <p className="text-base sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto px-2">
-              Everything you need to meet HMRC&apos;s Making Tax Digital requirements without disrupting your workflow.
+              Everything you need to meet HMRC&apos;s Making Tax Digital requirements for Self Assessment, with VAT capabilities included.
             </p>
           </motion.div>
           
@@ -367,7 +367,7 @@ const Product = () => {
                   <h4 className="text-xl sm:text-2xl font-bold text-black">Digital Record Keeping</h4>
                 </div>
                 <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                  Automatically capture and store VAT data from your spreadsheets with full traceability. No manual copying or re-entry — maintain a compliant digital audit trail.
+                  Automatically capture and store Self Assessment data from your spreadsheets with full traceability. Maintain a digital audit trail that meets HMRC requirements.
                 </p>
               </div>
 
@@ -379,7 +379,7 @@ const Product = () => {
                   <h4 className="text-xl sm:text-2xl font-bold text-black">Secure HMRC API Integration</h4>
                 </div>
                 <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                  Submit VAT returns directly via HMRC&apos;s approved MTD API. Our tool handles authentication, encryption, and submission confirmation automatically.
+                  Submit Self Assessment returns directly via HMRC&apos;s approved MTD API. VAT submissions also supported. Authentication and encryption handled automatically.
                 </p>
               </div>
             </motion.div>
@@ -399,7 +399,7 @@ const Product = () => {
                   <h4 className="text-xl sm:text-2xl font-bold text-black">Real-Time Validation</h4>
                 </div>
                 <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                  Validate your VAT figures before submission. Get instant feedback on errors, inconsistencies, and missing data to ensure accurate returns.
+                  Validate your Self Assessment figures before submission. Get instant feedback on errors and missing data to ensure accurate returns.
                 </p>
               </div>
 
@@ -411,7 +411,7 @@ const Product = () => {
                   <h4 className="text-xl sm:text-2xl font-bold text-black">Audit & Reporting Dashboard</h4>
                 </div>
                 <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                  Access a clear overview of submitted returns, obligations, and deadlines. Export digital records for audits or reviews with one click.
+                  Access a clear overview of submitted returns, obligations, and deadlines for both Self Assessment and VAT. Export digital records with one click.
                 </p>
               </div>
             </motion.div>
@@ -442,14 +442,27 @@ const Product = () => {
             variants={fadeInUp}
             className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 sm:mb-8 leading-tight"
           >
-            Stay Compliant. Stay in Control.
+            Meet Requirements. Stay in Control.
           </motion.h2>
           <motion.p 
             variants={fadeInUp}
             className="text-lg sm:text-xl lg:text-2xl text-white/90 mb-8 sm:mb-12 max-w-2xl mx-auto font-medium px-2"
           >
-            Trusted by accountants, bookkeepers, and small businesses across the UK — our HMRC MTD Bridging Tool ensures effortless compliance without changing your workflow.
+            Trusted by individuals and small businesses across the UK — our Self Assessment Bridging Tool ensures effortless MTD requirements without changing your workflow.
           </motion.p>
+          
+          {/* CTA Button */}
+          <motion.div 
+            variants={fadeInUp}
+            className="flex justify-center px-2"
+          >
+            <Link href="/waitlist">
+              <div className="inline-flex items-center rounded-2xl bg-white text-green-600 hover:bg-gray-50 px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 text-base sm:text-lg lg:text-xl font-bold shadow-2xl cursor-pointer transition-colors duration-200">
+                <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-2 sm:mr-3" />
+                <span>Join the Waitlist</span>
+              </div>
+            </Link>
+          </motion.div>
         </div>
       </motion.section>
 

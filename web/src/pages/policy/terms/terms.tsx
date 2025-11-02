@@ -157,10 +157,11 @@ const TermsAndConditions = () => {
             <motion.section variants={fadeInUp} className="mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">1. Introduction</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                These Terms and Conditions ("Terms") govern your use of the {COMPANY_NAME} HMRC
-                MTD Spreadsheet Bridging Tool (the "Service"), including any associated website,
-                spreadsheet add-ins, plugins or digital tools that enable VAT record-keeping and
-                submission to HMRC under the Making Tax Digital (MTD) programme. By accessing or
+                These Terms and Conditions ("Terms") govern your use of the {COMPANY_NAME} Individual Tax Self Assessment
+                Spreadsheet Bridging Tool (the "Service"), including any associated website,
+                spreadsheet add-ins, plugins or digital tools that enable self assessment record-keeping and
+                submission to HMRC under the Making Tax Digital (MTD) programme. The Service also provides 
+                VAT record-keeping and submission capabilities as an additional feature. By accessing or
                 using the Service you agree to be bound by these Terms. If you do not agree, do not use
                 the Service.
               </p>
@@ -177,20 +178,21 @@ const TermsAndConditions = () => {
             <motion.section variants={fadeInUp} className="mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">3. Purpose of the Service</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                The Service is designed to help users maintain digital VAT records, bridge spreadsheet
-                data (for example Excel or Google Sheets) and submit VAT returns to HMRC using
-                HMRC-recognised MTD APIs. The Service does not provide tax, accounting or legal advice.
-                You are responsible for the accuracy of your VAT records and for ensuring that any
-                returns submitted through the Service are correct and complete.
+                The Service is primarily designed to help individuals maintain digital self assessment records, 
+                bridge spreadsheet data (for example Excel or Google Sheets) and submit self assessment tax 
+                returns to HMRC using HMRC-recognised MTD APIs. The Service also provides VAT record-keeping 
+                and submission capabilities for users who require this functionality. The Service does not 
+                provide tax, accounting or legal advice. You are responsible for the accuracy of your tax 
+                records and for ensuring that any returns submitted through the Service are correct and complete.
               </p>
             </motion.section>
 
             <motion.section variants={fadeInUp} className="mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">4. Eligibility</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                You must be at least 18 years old and authorised to act on behalf of the business or
-                entity that will use the Service. Use of the Service must be lawful and in accordance
-                with applicable UK legislation and HMRC guidance.
+                You must be at least 18 years old and authorised to manage your own tax affairs or act on 
+                behalf of the individual or business that will use the Service. Use of the Service must be 
+                lawful and in accordance with applicable UK legislation and HMRC guidance.
               </p>
             </motion.section>
 
@@ -209,20 +211,21 @@ const TermsAndConditions = () => {
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">6. Use of the Service</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
                 You may use the Service only for lawful purposes and in compliance with HMRC's MTD
-                requirements. Prohibited activities include, but are not limited to: using the Service
-                for fraudulent or unlawful activity; attempting to bypass security controls; reverse
-                engineering the service; or distributing the software without our written permission.
+                requirements for self assessment and VAT (where applicable). Prohibited activities include, 
+                but are not limited to: using the Service for fraudulent or unlawful activity; attempting 
+                to bypass security controls; reverse engineering the service; or distributing the software 
+                without our written permission.
               </p>
             </motion.section>
 
             <motion.section variants={fadeInUp} className="mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">7. Data Protection & Privacy</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                We process personal and VAT-related data in accordance with the UK General Data
+                We process personal and tax-related data in accordance with the UK General Data
                 Protection Regulation (UK GDPR) and the Data Protection Act 2018. We collect only the
                 data necessary to operate the Service and to communicate with HMRC. Our Privacy Policy
                 sets out full details of how we collect, store and process personal data. Where you
-                submit VAT data via the Service you remain the data controller and {COMPANY_NAME} acts
+                submit tax data via the Service you remain the data controller and {COMPANY_NAME} acts
                 as a data processor (unless otherwise agreed in writing).
               </p>
             </motion.section>
@@ -230,10 +233,11 @@ const TermsAndConditions = () => {
             <motion.section variants={fadeInUp} className="mb-8 sm:mb-10 lg:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-black mb-4 sm:mb-6">8. HMRC Connectivity</h2>
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                The Service integrates with HMRC systems using HMRC's approved MTD APIs. While we aim
-                to maintain reliable connectivity, we cannot guarantee uninterrupted access to HMRC
-                systems, especially during HMRC maintenance windows, outages or changes to the API.
-                You remain responsible for submitting returns to HMRC within required timeframes.
+                The Service integrates with HMRC systems using HMRC's approved MTD APIs for both self 
+                assessment and VAT submissions. While we aim to maintain reliable connectivity, we cannot 
+                guarantee uninterrupted access to HMRC systems, especially during HMRC maintenance windows, 
+                outages or changes to the API. You remain responsible for submitting returns to HMRC within 
+                required timeframes.
               </p>
             </motion.section>
 
@@ -251,7 +255,7 @@ const TermsAndConditions = () => {
               <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
                 All intellectual property rights in the Service, documentation and related materials are
                 owned by {COMPANY_NAME} or its licensors. You are granted a limited, non-exclusive,
-                non-transferable licence to use the Service for your internal VAT submission purposes
+                non-transferable licence to use the Service for your internal tax submission purposes
                 in accordance with these Terms.
               </p>
             </motion.section>
