@@ -186,14 +186,14 @@ const Home = () => {
             >
               <span className="text-green-600 font-bold">Keep</span> • 
               <span className="text-green-600 font-bold mx-2">Bridge</span>• 
-              <span className="text-green-600 font-bold"> Comply</span>
+              <span className="text-green-600 font-bold"> Meet Requirements</span>
             </motion.div>
 
             <motion.p 
               variants={fadeInUp}
               className="text-base sm:text-lg lg:text-xl text-gray-700 mb-7 sm:mb-9 max-w-3xl mx-auto leading-relaxed px-2"
             >
-              Keep your Excel workflow. Bridge to HMRC seamlessly. Stay MTD compliant without changing how you work. Your familiar spreadsheets, now future-proofed.
+              Keep your Excel workflow. Bridge to HMRC seamlessly. Meet MTD requirements without changing how you work. Your familiar spreadsheets, now future-proofed.
             </motion.p>
             
             {/* Coming Soon Message */}
@@ -245,7 +245,7 @@ const Home = () => {
     >
       <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-green-600 mb-3 sm:mb-4">Why change your workflow?</h2>
       <h3 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-6 sm:mb-8 leading-tight">
-        MTD compliance without the headache
+        Meet MTD requirements without the headache
       </h3>
       <p className="text-base sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto px-2">
         Quix bridges your existing Excel processes to HMRC&apos;s digital requirements. No learning curve, no workflow disruption.
@@ -276,7 +276,7 @@ const Home = () => {
           Keep
         </h4>
         <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-          Your existing Excel templates. Your familiar formulas. Your trusted workflow. Nothing changes except compliance status.
+          Your existing Excel templates. Your familiar formulas. Your trusted workflow. Nothing changes except meeting requirements status.
         </p>
       </motion.div>
       
@@ -315,10 +315,10 @@ const Home = () => {
           <ShieldCheckIcon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
         </motion.div>
         <h4 className="text-xl sm:text-2xl font-bold text-black mb-3 sm:mb-4">
-          Comply
+          Meet Requirements
         </h4>
         <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-          Automatic MTD submissions. Error-free digital records. Complete audit trails. Stay compliant while staying productive.
+          Automatic MTD submissions. Error-free digital records. Complete audit trails. Meet requirements while staying productive.
         </p>
       </motion.div>
     </motion.div>
@@ -425,7 +425,7 @@ const Home = () => {
         </motion.div>
         <h4 className="text-xl sm:text-2xl font-bold text-black mb-4 sm:mb-6">Submit to HMRC</h4>
         <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-          One-click submissions to HMRC. Automatic digital records. Complete audit trails. MTD compliance sorted.
+          One-click submissions to HMRC. Automatic digital records. Complete audit trails. Meet MTD requirements sorted.
         </p>
       </motion.div>
     </div>
@@ -455,13 +455,13 @@ const Home = () => {
             variants={fadeInUp}
             className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 sm:mb-8 leading-tight"
           >
-            Ready to bridge the compliance gap?
+            Ready to bridge the requirements gap?
           </motion.h2>
           <motion.p 
             variants={fadeInUp}
             className="text-lg sm:text-xl lg:text-2xl text-white/90 mb-8 sm:mb-12 max-w-2xl mx-auto font-medium px-2"
           >
-            Join the waitlist for seamless MTD compliance—keep your Excel workflow while meeting HMRC&apos;s digital requirements effortlessly.
+            Join the waitlist for seamless MTD requirements—keep your Excel workflow while meeting HMRC&apos;s digital requirements effortlessly.
           </motion.p>
           
           {/* Coming Soon Message for CTA */}
