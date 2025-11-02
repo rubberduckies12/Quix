@@ -1,0 +1,562 @@
+.home-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  padding: 0;
+}
+
+/* Excel Grid Background */
+.home-container::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(to right, #22c55e 1px, transparent 1px),
+    linear-gradient(to bottom, #22c55e 1px, transparent 1px);
+  background-size: 40px 30px;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home-content {
+  position: relative;
+  z-index: 2;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.home-header {
+  margin-bottom: 3rem;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.quix-logo {
+  height: 120px;
+  width: auto;
+  margin-bottom: 0.75rem;
+}
+
+.dashboard-subtitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+  font-weight: 500;
+}
+
+.refresh-button {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.refresh-button:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.new-submission-button {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 
+    0 4px 6px rgba(34, 197, 94, 0.2),
+    0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.new-submission-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 15px rgba(34, 197, 94, 0.3),
+    0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.settings-icon-button {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+}
+
+.settings-icon-button:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Loading States */
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  background: white;
+  border-radius: 12px;
+  margin: 2rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(34, 197, 94, 0.1);
+  border-top: 4px solid #22c55e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-message {
+  background: rgba(254, 242, 242, 0.95);
+  border: 1px solid rgba(254, 202, 202, 0.5);
+  border-radius: 12px;
+  padding: 3rem;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.error-icon {
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: rgba(254, 226, 226, 0.8);
+  border-radius: 50%;
+}
+
+.error-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.error-message h3 {
+  color: #dc2626;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.retry-button {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 15px rgba(220, 38, 38, 0.3);
+}
+
+/* Main Table - Simplified and Centered */
+.submissions-table-container {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  margin-bottom: 3rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.submissions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.submissions-table th {
+  background: #f9fafb;
+  padding: 1rem 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.submission-row {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.submission-row:hover {
+  background: #f9fafb;
+}
+
+.submission-row:last-child {
+  border-bottom: none;
+}
+
+.submissions-table td {
+  padding: 1rem 1.5rem;
+  vertical-align: middle;
+  text-align: center;
+}
+
+/* Period Column */
+.period-cell {
+  width: 20%;
+}
+
+.period-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.period-label {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.period-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Due Date Column - Simplified */
+.due-date-cell {
+  width: 25%;
+}
+
+.due-date {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Status Column - Simplified */
+.status-cell {
+  width: 20%;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.status-badge.status-uploaded {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status-badge.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.status-badge.status-not-uploaded {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+/* Actions Column - Dropdown */
+.actions-cell {
+  width: 35%;
+}
+
+.action-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-button {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.dropdown-button:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  min-width: 150px;
+  margin-top: 0.25rem;
+}
+
+.dropdown-content.hidden {
+  display: none;
+}
+
+.dropdown-item {
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.dropdown-item:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.dropdown-item:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+.dropdown-item + .dropdown-item {
+  border-top: 1px solid #f3f4f6;
+}
+
+/* Chevron Icon */
+.chevron-icon {
+  transition: transform 0.2s ease;
+}
+
+.chevron-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* Summary Cards */
+.dashboard-summary {
+  margin-bottom: 3rem;
+}
+
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.summary-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 2rem;
+  border: 1px solid rgba(34, 197, 94, 0.1);
+  text-align: center;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.summary-card h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.summary-number {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.025em;
+}
+
+.summary-number.completed {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.summary-number.pending {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.summary-number.overdue {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.summary-card p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .home-content {
+    padding: 1rem;
+  }
+  
+  .home-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+  
+  .header-content {
+    order: 1;
+  }
+  
+  .refresh-button {
+    order: 2;
+    align-self: flex-start;
+  }
+  
+  .header-actions {
+    order: 3;
+    align-self: flex-end;
+  }
+  
+  .quix-logo {
+    height: 80px;
+    margin-bottom: 0.5rem;
+  }
+  
+  .submissions-table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+  }
+  
+  .submissions-table {
+    min-width: 700px;
+  }
+  
+  .submissions-table th,
+  .submissions-table td {
+    padding: 0.75rem 1rem;
+  }
+  
+  .summary-cards {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .period-label {
+    font-size: 1.1rem;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .quix-logo {
+    height: 60px;
+    margin-bottom: 0.25rem;
+  }
+  
+  .summary-number {
+    font-size: 2.5rem;
+  }
+}
