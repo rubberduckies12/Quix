@@ -1,4 +1,3 @@
-// filepath: /Users/tommyrowe/Documents/development/projects/active/quix/server/src/services/annual-submission.service.js
 const { AppError, ValidationError } = require('../utils/errors.util');
 const { formatForDisplay, getCurrentTaxYear } = require('../utils/date.util');
 const { processSpreadsheetLineByLine } = require('../utils/categorization.util');
@@ -316,27 +315,33 @@ _calculateFinancialTotalsFromCategorized(categorizedTransactions, businessType) 
       expense: 0
     }
   };
-
+  // Iterate over categorized transactions
   categorizedTransactions.forEach(transaction => {
     const amount = Math.abs(parseFloat(transaction.amount) || 0);
-    const category = transaction.categorization?.category || 'other';
-    const aiAnalysis = transaction.categorization?.aiAnalysis || '';
-    
-    console.log(`💰 Processing transaction: £${amount} - ${category}`);
-    
-    // Determine if it's income or expense based on AI categorization
-    const isIncome = aiAnalysis.toLowerCase().includes('income') || 
-                    aiAnalysis.toLowerCase().includes('rental') ||
-                    aiAnalysis.toLowerCase().includes('revenue') ||
-                    category.toLowerCase().includes('income') ||
-                    category.toLowerCase().includes('turnover') ||
-                    category.toLowerCase().includes('periodamount');
-    
+    const category = (transaction.categorization && transaction.categorization.category) ? transaction.categorization.category : 'other';
+    const aiType = transaction.categorization && transaction.categorization.type ? transaction.categorization.type.toLowerCase() : null;
+    const categoryDesc = transaction.categorization && transaction.categorization.categoryDescription ? transaction.categorization.categoryDescription : '';
+
+    console.log(`💰 Processing transaction: £${amount} - ${category} (AI type: ${aiType || 'unknown'})`);
+
+    // Prefer explicit AI/type from categorization when available
+    let isIncome = false;
+    if (aiType === 'income') {
+      isIncome = true;
+    } else if (aiType === 'expense') {
+      isIncome = false;
+    } else {
+      // Fallback heuristics when type is not provided
+      const aiText = (categoryDesc || category || '').toLowerCase();
+      const catLower = (category || '').toLowerCase();
+      isIncome = aiText.includes('income') || aiText.includes('rental') || aiText.includes('revenue') || catLower.includes('income') || catLower.includes('turnover') || catLower.includes('periodamount');
+    }
+
     if (isIncome) {
       totals.totalIncome += amount;
       totals.transactionCounts.income++;
-      
-      // Track income categories
+
+      // Track income categories (group property rental income under rental_income)
       const incomeCategory = 'rental_income';
       if (!totals.categoryBreakdown[incomeCategory]) {
         totals.categoryBreakdown[incomeCategory] = 0;
@@ -345,7 +350,7 @@ _calculateFinancialTotalsFromCategorized(categorizedTransactions, businessType) 
     } else {
       totals.totalExpenses += amount;
       totals.transactionCounts.expense++;
-      
+
       // Track expense categories
       if (!totals.categoryBreakdown[category]) {
         totals.categoryBreakdown[category] = 0;

@@ -6,7 +6,7 @@ import './submit.css';
 
 const Submit = () => {
   const navigate = useNavigate();
-  const [isVatRegistered, setIsVatRegistered] = useState(false);
+  const [isDataConfirmed, setIsDataConfirmed] = useState(false);
   const [submissionType, setSubmissionType] = useState('');
   const [quarterPeriod, setQuarterPeriod] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -47,10 +47,8 @@ const Submit = () => {
     };
   }, [loadingInterval]);
 
-  const handleVatToggle = () => {
-    setIsVatRegistered(!isVatRegistered);
-    setSubmissionType('');
-    setQuarterPeriod('');
+  const handleDataConfirmToggle = () => {
+    setIsDataConfirmed(!isDataConfirmed);
   };
 
   const handleSubmissionTypeChange = (e) => {
@@ -162,8 +160,8 @@ const Submit = () => {
 
   const handleSubmit = async () => {
     // Validation
-    if (!isVatRegistered) {
-      alert('Please confirm VAT registration status');
+    if (!isDataConfirmed) {
+      alert('Please confirm your spreadsheet data is as clear as possible');
       return;
     }
 
@@ -289,8 +287,7 @@ const Submit = () => {
 
   const BackIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M19 12H5"/>
-      <path d="M12 19l-7-7 7-7"/>
+      <path d="M15 18l-6-6 6-6"/>
     </svg>
   );
 
@@ -306,31 +303,31 @@ const Submit = () => {
         <div className="submit-header">
           <button onClick={handleBackToHome} className="back-button">
             <BackIcon />
-            <span>Back to Dashboard</span>
+            <span>Back</span>
           </button>
           <h1>New MTD Submission</h1>
           <p>Submit your Making Tax Digital compliance data</p>
         </div>
 
         <div className="submit-form">
-          {/* VAT Registration Toggle */}
+          {/* Data Confirmation Toggle */}
           <div className="form-section">
-            <label className="form-label">VAT Registration Status</label>
+            <label className="form-label">Data Confirmation</label>
             <div className="toggle-container">
-              <span className={`toggle-label ${!isVatRegistered ? 'active' : ''}`}>
-                Not VAT Registered
+              <span className={`toggle-label ${!isDataConfirmed ? 'active' : ''}`}>
+                Not Confirmed
               </span>
-              <div className="toggle-switch" onClick={handleVatToggle}>
-                <div className={`toggle-slider ${isVatRegistered ? 'active' : ''}`}></div>
+              <div className="toggle-switch" onClick={handleDataConfirmToggle}>
+                <div className={`toggle-slider ${isDataConfirmed ? 'active' : ''}`}></div>
               </div>
-              <span className={`toggle-label ${isVatRegistered ? 'active' : ''}`}>
-                VAT Registered
+              <span className={`toggle-label ${isDataConfirmed ? 'active' : ''}`}>
+                I confirm my spreadsheet is as clear as possible and understand the output is only as accurate as the input
               </span>
             </div>
           </div>
 
           {/* Submission Type Dropdown */}
-          {isVatRegistered && (
+          {isDataConfirmed && (
             <div className="form-section">
               <label className="form-label" htmlFor="submission-type">
                 Submission Type
@@ -349,7 +346,7 @@ const Submit = () => {
           )}
 
           {/* Quarter Period Dropdown */}
-          {isVatRegistered && submissionType === 'quarterly' && (
+          {isDataConfirmed && submissionType === 'quarterly' && (
             <div className="form-section">
               <label className="form-label" htmlFor="quarter-period">
                 Quarter Period
@@ -370,7 +367,7 @@ const Submit = () => {
           )}
 
           {/* Business Type Selection */}
-          {isVatRegistered && (
+          {isDataConfirmed && (
             <div className="form-section">
               <label className="form-label">Business Type</label>
               <div className="radio-group">
@@ -399,7 +396,7 @@ const Submit = () => {
           )}
 
           {/* File Upload Section */}
-          {isVatRegistered && submissionType && (submissionType === 'yearly' || quarterPeriod) && (
+          {isDataConfirmed && submissionType && (submissionType === 'yearly' || quarterPeriod) && (
             <div className="form-section">
               <label className="form-label">Upload File</label>
               

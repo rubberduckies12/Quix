@@ -59,25 +59,34 @@ class CategorizationUtil {
         console.log(`\n📋 Processing row ${i + 1}/${rows.length}:`);
         console.log('Raw row data:', JSON.stringify(row, null, 2));
 
-        // Extract transaction data
-        const transactionData = this._extractTransactionData(row);
-        console.log('Extracted transaction:', transactionData);
+        // Extract transaction data (can return multiple transactions for side-by-side columns)
+        const extractedTransactions = this._extractTransactionData(row);
+        console.log('Extracted transactions:', extractedTransactions);
 
-        if (transactionData.skip || (transactionData.amount === 0 && !transactionData.description)) {
-          console.log('⚠️ Skipping empty/calculated row');
+        if (!extractedTransactions || extractedTransactions.length === 0) {
+          console.log('⚠️ No transactions extracted from row');
           continue;
         }
 
-        // Get AI categorization for this specific transaction
-        const categorization = await this._categorizeTransactionWithAI(transactionData, businessType);
-        console.log('AI categorization result:', categorization);
+        // Process each extracted transaction
+        for (const transactionData of extractedTransactions) {
+          if (transactionData.skip || (transactionData.amount === 0 && !transactionData.description)) {
+            console.log('⚠️ Skipping empty/calculated transaction');
+            continue;
+          }
 
-        // Create transaction result
-        const transactionResult = {
-          success: true,
-          originalRow: row,
-          amount: transactionData.amount,
-          description: transactionData.description,
+          // Get AI categorization for this specific transaction
+          const categorization = await this._categorizeTransactionWithAI(transactionData, businessType);
+          console.log('AI categorization result:', categorization);
+
+          // Create transaction result
+          const transactionResult = {
+            success: true,
+            originalRow: row,
+            amount: transactionData.amount,
+            description: transactionData.description,
+          categorization: categorization,
+          businessType,
           categorization: categorization,
           businessType,
           timestamp: new Date().toISOString()
@@ -99,16 +108,17 @@ class CategorizationUtil {
           results.categoryTotals[category] += transactionData.amount;
         }
 
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+        } // End inner transaction loop
+
         if (progressCallback) {
           progressCallback({
             stage: 'categorization',
             percentage: progress,
-            stageDescription: `Processing transaction ${i + 1}/${rows.length} - ${categorization.category}`
+            stageDescription: `Processing row ${i + 1}/${rows.length}`
           });
         }
-
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
 
       } catch (error) {
         console.error(`❌ Error processing row ${i + 1}:`, error.message);
@@ -134,68 +144,197 @@ class CategorizationUtil {
   }
 
   /**
-   * Extract transaction data from a single row
+   * Extract transaction data from a single row - can return multiple transactions for side-by-side columns
    */
   _extractTransactionData(row) {
-    let amount = 0;
-    let description = '';
+    const transactions = [];
     let boxNumber = '';
 
     // Skip calculated totals and empty rows
     if (this._isCalculatedTotal(row)) {
       console.log('⏭️ Skipping calculated total/summary row');
-      return { amount: 0, description: '', skip: true };
+      return [{ amount: 0, description: '', skip: true }];
     }
 
-    // Extract Box number first
+    // Extract Box number first (for box-based spreadsheets)
     if (row.Box && row.Box.toString().trim()) {
       boxNumber = row.Box.toString().trim();
-      description = `Box ${boxNumber}`;
     }
 
-    // Find the amount - prioritize the unnamed column which contains the actual values
-    for (const [key, value] of Object.entries(row)) {
-      if (key.startsWith('_') || !value) continue;
-
-      // The actual amounts are in the empty key column ""
-      if (key === '' && value) {
-        const cleanValue = String(value).replace(/[£$,\s]/g, '');
+    // Handle side-by-side Income/Expense columns
+    const hasIncomeColumn = row.Income !== undefined && row.Income !== null && row.Income !== '';
+    const hasExpenseColumn = row.Expense !== undefined && row.Expense !== null && row.Expense !== '';
+    
+    if (hasIncomeColumn || hasExpenseColumn) {
+      // Check for Income amount
+      if (hasIncomeColumn) {
+        const cleanValue = String(row.Income).replace(/[£$,\s]/g, '');
         const numValue = parseFloat(cleanValue);
         if (!isNaN(numValue) && numValue > 0) {
-          amount = numValue;
-          break; // Found the amount, stop looking
+          let description = 'Income transaction';
+          
+          // Get description from other columns
+          if (row.Description && row.Description.toString().trim()) {
+            description = `Income: ${row.Description.toString().trim()}`;
+          } else if (row.rent && row.rent.toString().trim()) {
+            description = `Income: ${row.rent.toString().trim()}`;
+          } else if (boxNumber) {
+            description = `Income: Box ${boxNumber}`;
+          }
+          
+          transactions.push({
+            amount: numValue,
+            description: description,
+            boxNumber: boxNumber,
+            transactionType: 'income',
+            skip: false
+          });
+        }
+      }
+      
+      // Check for Expense amount (separate transaction)
+      if (hasExpenseColumn) {
+        // For expenses, the amount might be in different columns
+        let expenseAmount = 0;
+        let expenseDescription = '';
+        
+        // Try to get expense amount from Expense column first
+        const expenseCleanValue = String(row.Expense).replace(/[£$,\s]/g, '');
+        const expenseNumValue = parseFloat(expenseCleanValue);
+        if (!isNaN(expenseNumValue) && expenseNumValue > 0) {
+          expenseAmount = expenseNumValue;
+          expenseDescription = 'Expense transaction';
+        } else {
+          // If Expense column has description, look for amount in other columns
+          if (row.Expense && isNaN(parseFloat(row.Expense))) {
+            expenseDescription = `Expense: ${row.Expense.toString().trim()}`;
+            
+            // Look for amount in Description or other numeric columns
+            if (row.Description) {
+              const descCleanValue = String(row.Description).replace(/[£$,\s]/g, '');
+              const descNumValue = parseFloat(descCleanValue);
+              if (!isNaN(descNumValue) && descNumValue > 0) {
+                expenseAmount = descNumValue;
+              }
+            }
+          }
+        }
+        
+        if (expenseAmount > 0) {
+          transactions.push({
+            amount: expenseAmount,
+            description: expenseDescription,
+            boxNumber: boxNumber,
+            transactionType: 'expense',
+            skip: false
+          });
         }
       }
     }
 
-    // If no amount found in empty column, try other columns
-    if (amount === 0) {
+    
+    // Fallback: single column format with direction indicators
+    if (transactions.length === 0) {
+      let amount = 0;
+      let description = '';
+      let transactionType = '';
+      
+      // Detect explicit direction column (e.g. 'in' which contains 'in' or 'out')
       for (const [key, value] of Object.entries(row)) {
-        if (key.startsWith('_') || key === 'Box' || !value) continue;
-        
-        const cleanValue = String(value).replace(/[£$,\s]/g, '');
-        const numValue = parseFloat(cleanValue);
-        if (!isNaN(numValue) && numValue > 0) {
-          amount = numValue;
+        if (!key || typeof key !== 'string') continue;
+        const lowerKey = key.toLowerCase().trim();
+        if (['in', 'direction', 'in/out', 'in_out', 'flow'].includes(lowerKey)) {
+          if (value && typeof value === 'string') {
+            const lowerVal = value.toLowerCase().trim();
+            if (lowerVal.includes('out') || lowerVal.includes('-') || lowerVal.includes('expense')) {
+              transactionType = 'expense';
+            } else if (lowerVal.includes('in') || lowerVal.includes('income') || lowerVal.includes('receipt')) {
+              transactionType = 'income';
+            }
+          }
           break;
         }
       }
+
+      // Find amount in unnamed column (original logic)
+      for (const [key, value] of Object.entries(row)) {
+        if (key.startsWith('_') || !value) continue;
+
+        // The actual amounts are in the empty key column ""
+        if (key === '' && value) {
+          const cleanValue = String(value).replace(/[£$,\s]/g, '');
+          const numValue = parseFloat(cleanValue);
+          if (!isNaN(numValue) && numValue > 0) {
+            amount = numValue;
+            break; // Found the amount, stop looking
+          }
+        }
+      }
+
+      // Final fallback: try any numeric column
+      if (amount === 0) {
+        for (const [key, value] of Object.entries(row)) {
+          if (key.startsWith('_') || key === 'Box' || !value) continue;
+          
+          const cleanValue = String(value).replace(/[£$,\s]/g, '');
+          const numValue = parseFloat(cleanValue);
+          if (!isNaN(numValue) && numValue > 0) {
+            amount = numValue;
+            
+            // Try to find description in other columns
+            if (!description) {
+              for (const [descKey, descValue] of Object.entries(row)) {
+                if (descKey !== key && descValue && !descKey.startsWith('_') && isNaN(parseFloat(descValue))) {
+                  description = `${descKey}: ${descValue}`;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+      }
+
+      // If we detected a direction earlier but haven't set transactionType from amounts, try to infer
+      if (!transactionType) {
+        // If amount was found in what looked like an Income column, set income
+        if (Object.keys(row).some(k => k && k.toLowerCase && k.toLowerCase().includes('income')) && row.Income) {
+          transactionType = 'income';
+        }
+      }
+
+      // Create single transaction if we found data
+      if (amount > 0) {
+        // Ensure we have some description
+        if (!description) {
+          description = transactionType || 'Transaction';
+          if (boxNumber) {
+            description = `Box ${boxNumber}`;
+          }
+        }
+
+        transactions.push({
+          amount: amount,
+          description: description,
+          boxNumber: boxNumber,
+          transactionType: transactionType,
+          skip: false
+        });
+      }
     }
 
-    // Skip if no meaningful data
-    if (amount === 0 || !description) {
+    // If no transactions found, return skip marker
+    if (transactions.length === 0) {
       console.log('⏭️ Skipping empty row');
-      return { amount: 0, description: '', skip: true };
+      return [{ amount: 0, description: '', skip: true }];
     }
 
-    console.log(`💰 Extracted: £${amount} - ${description}`);
+    // Log what we extracted
+    transactions.forEach(txn => {
+      console.log(`💰 Extracted: £${txn.amount} - ${txn.description} (${txn.transactionType || 'unknown'})`);
+    });
 
-    return {
-      amount: amount,
-      description: description,
-      boxNumber: boxNumber,
-      skip: false
-    };
+    return transactions;
   }
 
   /**
@@ -320,6 +459,12 @@ class CategorizationUtil {
 
       console.log(`✅ AI categorized as: ${categoryData.category} (${categoryData.type})`);
 
+      // If we previously inferred transaction direction from the spreadsheet, prefer that
+      if (transactionData.transactionType && categoryData.type && transactionData.transactionType !== categoryData.type) {
+        console.log(`⚠️ Overriding AI type (${categoryData.type}) with extracted transaction type: ${transactionData.transactionType}`);
+        categoryData.type = transactionData.transactionType;
+      }
+
       return {
         category: categoryData.category || 'other',
         categoryDescription: this._getCategoryDescription(categoryData.category || 'other'),
@@ -342,10 +487,11 @@ class CategorizationUtil {
       'periodAmount (income), financialCosts (expense), premisesRunningCosts (expense), repairsAndMaintenance (expense), professionalFees (expense), costOfServices (expense), other (expense)' :
       'turnover (income), costOfGoodsBought (expense), staffCosts (expense), travelCosts (expense), premisesRunningCosts (expense), adminCosts (expense), professionalFees (expense), other (expense)';
 
-    return `Categorize this ${businessContext} transaction for HMRC:
+  return `Categorize this ${businessContext} transaction for HMRC:
 
 Amount: £${transactionData.amount}
 Description: ${transactionData.description}
+Direction: ${transactionData.transactionType || 'unknown'}
 
 Available categories: ${categories}
 
@@ -431,6 +577,6 @@ Respond with JSON: {"category": "exact_category_name", "type": "income_or_expens
 }
 
 // Create singleton instance
-const categorizationUtil = new CategorizationUtil();
+var categorizationUtil = new CategorizationUtil();
 
 module.exports = categorizationUtil;
