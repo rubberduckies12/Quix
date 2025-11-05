@@ -197,12 +197,95 @@ class OpenAIService {
     const amountMatch = prompt.match(/£(\d+)/);
     const amount = amountMatch ? parseInt(amountMatch[1]) : 0;
     
-    // Simple rule-based categorization
-    if (promptLower.includes('hotel') || promptLower.includes('travel') || promptLower.includes('fuel') || promptLower.includes('petrol')) {
+    // Box-based categorization for tax return data
+    if (promptLower.includes('box 1') || promptLower.includes('sales') || promptLower.includes('turnover')) {
+      console.log('✅ Categorized as: turnover');
+      return 'turnover';
+    }
+    
+    if (promptLower.includes('box 2') || promptLower.includes('other business income')) {
+      console.log('✅ Categorized as: other');
+      return 'other';
+    }
+    
+    if (promptLower.includes('box 3') || promptLower.includes('cost of goods')) {
+      console.log('✅ Categorized as: costOfGoodsBought');
+      return 'costOfGoodsBought';
+    }
+    
+    if (promptLower.includes('box 4') || promptLower.includes('construction industry scheme')) {
+      console.log('✅ Categorized as: cisPaymentsToSubcontractors');
+      return 'cisPaymentsToSubcontractors';
+    }
+    
+    if (promptLower.includes('box 5') || promptLower.includes('staff costs') || promptLower.includes('wages')) {
+      console.log('✅ Categorized as: staffCosts');
+      return 'staffCosts';
+    }
+    
+    if (promptLower.includes('box 6') || promptLower.includes('travel costs') || 
+        promptLower.includes('hotel') || promptLower.includes('fuel') || promptLower.includes('petrol')) {
       console.log('✅ Categorized as: travelCosts');
       return 'travelCosts';
     }
     
+    if (promptLower.includes('box 7') || promptLower.includes('premises running costs') ||
+        promptLower.includes('rent') || promptLower.includes('electricity') || 
+        promptLower.includes('utilities') || promptLower.includes('gas')) {
+      console.log('✅ Categorized as: premisesRunningCosts');
+      return 'premisesRunningCosts';
+    }
+    
+    if (promptLower.includes('box 8') || promptLower.includes('repairs and maintenance')) {
+      console.log('✅ Categorized as: repairsAndMaintenance');
+      return 'repairsAndMaintenance';
+    }
+    
+    if (promptLower.includes('box 9') || promptLower.includes('office') || 
+        promptLower.includes('supplies') || promptLower.includes('stationery') || promptLower.includes('paper')) {
+      console.log('✅ Categorized as: adminCosts');
+      return 'adminCosts';
+    }
+    
+    if (promptLower.includes('box 10') || promptLower.includes('advertising') || 
+        promptLower.includes('marketing') || promptLower.includes('website') || promptLower.includes('google')) {
+      console.log('✅ Categorized as: advertisingCosts');
+      return 'advertisingCosts';
+    }
+    
+    if (promptLower.includes('box 11') || promptLower.includes('interest on bank')) {
+      console.log('✅ Categorized as: interestOnBankOtherLoans');
+      return 'interestOnBankOtherLoans';
+    }
+    
+    if (promptLower.includes('box 12') || promptLower.includes('financial charges')) {
+      console.log('✅ Categorized as: financialCharges');
+      return 'financialCharges';
+    }
+    
+    if (promptLower.includes('box 13') || promptLower.includes('bad debt')) {
+      console.log('✅ Categorized as: badDebt');
+      return 'badDebt';
+    }
+    
+    if (promptLower.includes('box 14') || promptLower.includes('professional fees') ||
+        promptLower.includes('accountant') || promptLower.includes('legal') || 
+        promptLower.includes('consultant') || promptLower.includes('lawyer')) {
+      console.log('✅ Categorized as: professionalFees');
+      return 'professionalFees';
+    }
+    
+    if (promptLower.includes('box 15') || promptLower.includes('depreciation')) {
+      console.log('✅ Categorized as: depreciation');
+      return 'depreciation';
+    }
+    
+    if (promptLower.includes('box 16') || promptLower.includes('other business expenses')) {
+      console.log('✅ Categorized as: other');
+      return 'other';
+    }
+    
+    // General categorization rules
     if (promptLower.includes('accountant') || promptLower.includes('legal') || promptLower.includes('consultant') || promptLower.includes('lawyer')) {
       console.log('✅ Categorized as: professionalFees');
       return 'professionalFees';
@@ -211,11 +294,6 @@ class OpenAIService {
     if (promptLower.includes('office') || promptLower.includes('supplies') || promptLower.includes('stationery') || promptLower.includes('paper')) {
       console.log('✅ Categorized as: adminCosts');
       return 'adminCosts';
-    }
-    
-    if (promptLower.includes('rent') || promptLower.includes('electricity') || promptLower.includes('utilities') || promptLower.includes('gas')) {
-      console.log('✅ Categorized as: premisesRunningCosts');
-      return 'premisesRunningCosts';
     }
     
     if (promptLower.includes('advertising') || promptLower.includes('marketing') || promptLower.includes('website') || promptLower.includes('google')) {
@@ -244,8 +322,9 @@ class OpenAIService {
       return 'premisesRunningCosts';
     }
     
-    // Default categorization based on amount
-    if (amount > 0) {
+    // Default categorization - if it mentions income/sales/revenue, categorize as income
+    if (promptLower.includes('income') || promptLower.includes('sales') || 
+        promptLower.includes('revenue') || promptLower.includes('turnover')) {
       console.log('✅ Categorized as: turnover (income)');
       return 'turnover';
     } else {
