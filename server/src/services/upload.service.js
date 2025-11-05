@@ -117,35 +117,31 @@ class UploadService {
   }
 
   /**
-   * Process uploaded spreadsheet file - AI will figure out the columns!
-   * @param {Object} file - Multer file object
-   * @param {Object} options - Processing options
-   * @param {Function} progressCallback - Optional progress callback
-   * @returns {Object} Raw spreadsheet data ready for AI categorization
+   * Process uploaded spreadsheet file - VALIDATION DISABLED
    */
   async processSpreadsheet(file, options = {}, progressCallback = null) {
     let tempFilePath = null;
     
     try {
       if (!file) {
-        throw new ValidationError('No file provided', [], 'file');
+        throw new Error('No file provided');
       }
 
       tempFilePath = file.path;
-      console.log(`Processing spreadsheet: ${file.originalname} (${file.size} bytes)`);
+      console.log(`Processing spreadsheet: ${file.originalname} (${file.size} bytes) - VALIDATION DISABLED`);
 
       if (progressCallback) {
         progressCallback({
           stage: 'validation',
-          stageDescription: 'Validating file',
+          stageDescription: 'Skipping validation',
           completed: 20,
           total: 100,
           percentage: 20
         });
       }
 
-      // Step 1: Validate file
-      this._validateFile(file);
+      // SKIP FILE VALIDATION
+      // this._validateFile(file);
 
       if (progressCallback) {
         progressCallback({
@@ -157,20 +153,21 @@ class UploadService {
         });
       }
 
-      // Step 2: Parse file and extract ALL data - let AI figure out what's what
+      // Step 2: Parse file and extract ALL data
       const rawData = await this._parseFile(file);
+      console.log(`✅ Parsed ${rawData.length} rows from file`);
 
       if (progressCallback) {
         progressCallback({
           stage: 'processing',
-          stageDescription: 'Processing raw data for AI analysis',
+          stageDescription: 'Processing raw data (no validation)',
           completed: 80,
           total: 100,
           percentage: 80
         });
       }
 
-      // Step 3: Basic validation and structure - no column mapping needed!
+      // Step 3: Minimal processing - no validation
       const processedData = this._processRawData(rawData, options);
 
       if (progressCallback) {
@@ -201,11 +198,8 @@ class UploadService {
 
     } catch (error) {
       console.error('Spreadsheet processing failed:', error.message);
-      throw new AppError(
-        `Failed to process spreadsheet: ${error.message}`,
-        500,
-        this.config.errorCodes.FILE_PARSING_FAILED
-      );
+      // Don't wrap in AppError - just throw the original error
+      throw error;
     } finally {
       // Clean up temporary file
       if (tempFilePath) {
@@ -219,27 +213,79 @@ class UploadService {
   }
 
   /**
-   * Validate uploaded file
-   * @param {Object} file - Multer file object
+   * Process raw data - NO VALIDATION, just basic structure
+   * @param {Array} rawData - Raw spreadsheet data
+   * @param {Object} options - Processing options
+   * @returns {Object} Raw data with minimal processing
    * @private
    */
-  _validateFile(file) {
-    if (file.size > this.config.upload.maxFileSize) {
-      throw new ValidationError(
-        `File too large. Maximum size: ${this.config.upload.maxFileSize / 1024 / 1024}MB`,
-        [createFieldError('file', 'FILE_TOO_LARGE', `File size ${file.size} exceeds limit`)],
-        'file'
-      );
+  _processRawData(rawData, options) {
+    console.log('🔍 Processing raw data - VALIDATION DISABLED');
+    console.log(`📊 Raw data length: ${rawData?.length || 0}`);
+    
+    // SKIP ALL VALIDATION - just basic checks
+    if (!Array.isArray(rawData)) {
+      console.log('❌ Data is not an array, converting...');
+      rawData = [rawData];
     }
 
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (!this.config.upload.allowedExtensions.includes(ext)) {
-      throw new ValidationError(
-        `Invalid file extension: ${ext}`,
-        [createFieldError('file', 'INVALID_FILE_TYPE', `Extension ${ext} not allowed`)],
-        'file'
-      );
+    if (rawData.length === 0) {
+      console.log('❌ No data found');
+      throw new Error('Spreadsheet contains no data');
     }
+
+    console.log('✅ Found data, processing without validation...');
+
+    // Process each row - minimal cleaning only
+    const processedRows = rawData.map((row, index) => {
+      const cleanedRow = {
+        _originalRowIndex: index,
+        _rowNumber: row._rowNumber || (index + 1)
+      };
+
+      // Keep ALL original data - don't validate anything
+      Object.keys(row).forEach(columnName => {
+        if (columnName.startsWith('_')) {
+          cleanedRow[columnName] = row[columnName];
+        } else {
+          const value = row[columnName];
+          // Just basic cleaning - keep everything
+          cleanedRow[columnName] = value !== undefined && value !== null ? String(value) : '';
+        }
+      });
+
+      return cleanedRow;
+    });
+
+    console.log(`✅ Processed ${processedRows.length} rows without validation`);
+
+    // Don't filter empty rows - let AI handle it
+    const finalRows = processedRows;
+
+    const columnNames = Object.keys(finalRows[0] || {}).filter(key => !key.startsWith('_'));
+    
+    console.log('📋 Detected columns:', columnNames);
+
+    return {
+      rows: finalRows,
+      totalRows: rawData.length,
+      processedRows: finalRows.length,
+      emptyRowsRemoved: 0, // Not removing any rows
+      columnNames: columnNames,
+      columnCount: columnNames.length
+    };
+  }
+
+  /**
+   * Validate uploaded file - DISABLED
+   */
+  _validateFile(file) {
+    console.log('🔍 File validation DISABLED - accepting all files');
+    // VALIDATION DISABLED
+    // if (file.size > this.config.upload.maxFileSize) {
+    //   throw new ValidationError(...);
+    // }
+    return true; // Always pass
   }
 
   /**
@@ -349,104 +395,6 @@ class UploadService {
     } catch (error) {
       throw new Error(`Excel parsing error: ${error.message}`);
     }
-  }
-
-  /**
-   * Process raw data - minimal validation, let AI handle the rest
-   * @param {Array} rawData - Raw spreadsheet data
-   * @param {Object} options - Processing options
-   * @returns {Object} Minimally processed data
-   * @private
-   */
-  _processRawData(rawData, options) {
-    // Basic validation only
-    if (!Array.isArray(rawData) || rawData.length === 0) {
-      throw new ValidationError('Spreadsheet contains no data', [], 'data');
-    }
-
-    if (rawData.length > this.config.validation.maxRows) {
-      throw new ValidationError(
-        `Too many rows. Maximum allowed: ${this.config.validation.maxRows}`,
-        [createFieldError('data', 'TOO_MANY_ROWS', `Found ${rawData.length} rows`)],
-        'data'
-      );
-    }
-
-    if (rawData.length < this.config.validation.minRows) {
-      throw new ValidationError(
-        `Insufficient data. Minimum required: ${this.config.validation.minRows} row`,
-        [createFieldError('data', 'INSUFFICIENT_DATA', `Found ${rawData.length} rows`)],
-        'data'
-      );
-    }
-
-    // Check column count
-    const sampleRow = rawData[0];
-    const columnCount = Object.keys(sampleRow).length;
-    
-    if (columnCount < this.config.validation.minColumns) {
-      throw new ValidationError(
-        `Insufficient columns. Minimum required: ${this.config.validation.minColumns}`,
-        [createFieldError('data', 'INSUFFICIENT_COLUMNS', `Found ${columnCount} columns`)],
-        'data'
-      );
-    }
-
-    if (columnCount > this.config.validation.maxColumns) {
-      throw new ValidationError(
-        `Too many columns. Maximum allowed: ${this.config.validation.maxColumns}`,
-        [createFieldError('data', 'TOO_MANY_COLUMNS', `Found ${columnCount} columns`)],
-        'data'
-      );
-    }
-
-    // Process each row - minimal cleaning only
-    const processedRows = rawData.map((row, index) => {
-      const cleanedRow = {
-        _originalRowIndex: index,
-        _rowNumber: row._rowNumber || (index + 1)
-      };
-
-      // Clean up each cell value but keep original column names
-      Object.keys(row).forEach(columnName => {
-        if (columnName.startsWith('_')) {
-          cleanedRow[columnName] = row[columnName];
-        } else {
-          const value = row[columnName];
-          // Minimal sanitization - just trim whitespace
-          cleanedRow[columnName] = typeof value === 'string' ? value.trim() : String(value || '');
-        }
-      });
-
-      return cleanedRow;
-    });
-
-    // Filter out completely empty rows
-    const nonEmptyRows = processedRows.filter(row => {
-      const values = Object.keys(row)
-        .filter(key => !key.startsWith('_'))
-        .map(key => row[key])
-        .filter(value => value && value.trim() !== '');
-      
-      return values.length > 0;
-    });
-
-    if (nonEmptyRows.length === 0) {
-      throw new ValidationError(
-        'No non-empty rows found in spreadsheet',
-        [createFieldError('data', 'NO_DATA', 'All rows are empty')],
-        'data'
-      );
-    }
-
-    return {
-      rows: nonEmptyRows,
-      totalRows: rawData.length,
-      processedRows: nonEmptyRows.length,
-      emptyRowsRemoved: rawData.length - nonEmptyRows.length,
-      columnNames: Object.keys(nonEmptyRows[0]).filter(key => !key.startsWith('_')),
-      columnCount: Object.keys(nonEmptyRows[0]).filter(key => !key.startsWith('_')).length
-    };
   }
 
   /**

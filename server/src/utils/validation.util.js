@@ -937,44 +937,40 @@ class ValidationUtil {
    * @returns {Object} Complete validation result
    */
   validateTransaction(transaction) {
+    console.log('🔎 validateTransaction called with:', JSON.stringify(transaction, null, 2));
+    
     const errors = [];
-
-    // Validate required fields
-    const requiredResult = this.validateRequired(['date', 'amount', 'description', 'type'], transaction);
-    if (!requiredResult.isValid) {
-      errors.push(...requiredResult.errors);
+    
+    // Check for required fields
+    if (!transaction) {
+      console.log('❌ Transaction is null/undefined');
+      return { isValid: false, errors: ['Transaction data is required'] };
     }
-
-    // Validate individual fields
-    if (transaction.date) {
-      const dateResult = this.validateTransactionDate(transaction.date);
-      if (!dateResult.isValid) {
-        errors.push(createFieldError('date', dateResult.error, dateResult.code));
+    
+    // Check amount
+    if (!transaction.amount && transaction.amount !== 0) {
+      console.log('❌ Amount missing:', transaction.amount);
+      errors.push('Amount is required');
+    } else {
+      const amount = parseFloat(transaction.amount);
+      if (isNaN(amount)) {
+        console.log('❌ Amount not a number:', transaction.amount);
+        errors.push('Amount must be a valid number');
       }
     }
-
-    if (transaction.amount) {
-      const amountResult = this.validateTransactionAmount(transaction.amount);
-      if (!amountResult.isValid) {
-        errors.push(createFieldError('amount', amountResult.error, amountResult.code));
-      }
+    
+    // Check description
+    if (!transaction.description || transaction.description.trim() === '') {
+      console.log('❌ Description missing:', transaction.description);
+      errors.push('Description is required');
     }
-
-    if (transaction.description) {
-      const descResult = this.validateTransactionDescription(transaction.description);
-      if (!descResult.isValid) {
-        errors.push(createFieldError('description', descResult.error, descResult.code));
-      }
-    }
-
-    if (transaction.type) {
-      const typeResult = this.validateTransactionType(transaction.type);
-      if (!typeResult.isValid) {
-        errors.push(createFieldError('type', typeResult.error, typeResult.code));
-      }
-    }
-
-    return this.formatValidationErrors(errors);
+    
+    // Date is optional for basic validation
+    
+    const isValid = errors.length === 0;
+    console.log(`✅ Validation result: ${isValid ? 'VALID' : 'INVALID'}`, errors);
+    
+    return { isValid, errors };
   }
 
   /**

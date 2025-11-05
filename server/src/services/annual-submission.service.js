@@ -2,7 +2,7 @@
 const { AppError, ValidationError } = require('../utils/errors.util');
 const { formatForDisplay, getCurrentTaxYear } = require('../utils/date.util');
 const { processSpreadsheetLineByLine } = require('../utils/categorization.util');
-const vertexAI = require('../external/vertex-ai.external');
+const vertexAI = require('../external/openai.external');
 
 /**
  * MTD Annual Submission Service
@@ -171,84 +171,254 @@ class AnnualSubmissionService {
    * @param {Function} progressCallback - Progress callback
    * @returns {Object} Complete annual declaration
    */
-  async processAnnualDeclaration(spreadsheetData, businessType = 'sole_trader', quarterlyData = null, progressCallback = null) {
+  async processAnnualDeclaration(categorizedData, businessType, quarterlyData = null, progressCallback) {
+    console.log('🔍 Annual declaration processing started');
+    console.log('📊 Categorized data structure:', {
+      hasSuccessful: !!categorizedData?.successful,
+      successfulCount: categorizedData?.successful?.length || 0,
+      hasErrors: !!categorizedData?.errors,
+      errorCount: categorizedData?.errors?.length || 0,
+      hasSummary: !!categorizedData?.summary,
+      totalRows: categorizedData?.totalRows
+    });
+
     try {
-      this._validateBusinessType(businessType);
-      this._validateSpreadsheetData(spreadsheetData);
+      // VALIDATE INPUT DATA - Fix this validation
+      if (!categorizedData) {
+        throw new AppError('No categorized data provided', 400, 'MISSING_DATA');
+      }
 
-      console.log(`Starting annual declaration processing for ${businessType}`);
+      // Check for the correct structure (categorized results, not raw spreadsheet)
+      if (!categorizedData.processedTransactions || !Array.isArray(categorizedData.processedTransactions)) {
+        console.log('❌ Expected categorized data with "processedTransactions" array, got:', Object.keys(categorizedData));
+        throw new AppError('Invalid categorized data structure - missing processedTransactions array', 400, 'INVALID_DATA_STRUCTURE');
+      }
 
-      // Step 1: Categorize all transactions for the full year
-      const categorizationResults = await processSpreadsheetLineByLine(
-        spreadsheetData,
+      // Use processedTransactions instead of successful
+      const transactions = categorizedData.processedTransactions;
+      console.log(`✅ Processing ${transactions.length} successfully categorized transactions`);
+
+      if (transactions.length === 0) {
+        throw new AppError('No successful transactions to process for annual declaration', 400, 'NO_TRANSACTIONS');
+      }
+
+      // Update progress
+      if (progressCallback) {
+        progressCallback({
+          stage: 'submission',
+          percentage: 25,
+          stageDescription: 'Calculating annual totals from categorized transactions'
+        });
+      }
+
+      // Calculate financial totals from CATEGORIZED transactions
+      const financialTotals = this._calculateFinancialTotalsFromCategorized(transactions, businessType);
+      console.log('📊 Financial totals calculated:', financialTotals);
+
+      if (progressCallback) {
+        progressCallback({
+          stage: 'submission',
+          percentage: 50,
+          stageDescription: 'Generating annual tax calculations'
+        });
+      }
+
+      // Generate tax calculations for annual submission
+      const taxCalculations = this._calculateAnnualTax(financialTotals, businessType);
+      console.log('🧮 Tax calculations:', taxCalculations);
+
+      if (progressCallback) {
+        progressCallback({
+          stage: 'submission',
+          percentage: 75,
+          stageDescription: 'Preparing HMRC annual submission format'
+        });
+      }
+
+      // Create annual submission structure
+      const submission = {
+        submissionId: `ANNUAL_${Date.now()}`,
+        submissionType: 'annual',
         businessType,
-        (progress) => {
-          if (progressCallback) {
-            progressCallback({
-              ...progress,
-              stage: 'categorization',
-              stageDescription: 'Categorizing full year transactions with AI'
-            });
-          }
+        taxYear: new Date().getFullYear(),
+        submissionDate: new Date().toISOString(),
+        
+        // Financial summary
+        summary: {
+          totalIncome: financialTotals.totalIncome,
+          totalExpenses: financialTotals.totalExpenses,
+          netProfitLoss: financialTotals.netProfit,
+          taxOwed: taxCalculations.incomeTax,
+          allowances: taxCalculations.allowances
+        },
+        
+        // Detailed breakdown by category
+        categoryBreakdown: financialTotals.categoryBreakdown,
+        
+        // Transaction summary
+        transactionSummary: {
+          totalProcessed: categorizedData.totalRows,
+          businessTransactions: categorizedData.summary.successful,
+          personalExcluded: categorizedData.summary.personal,
+          errorCount: categorizedData.summary.errors
+        },
+        
+        // HMRC format data
+        hmrcData: this._formatForHMRC(financialTotals, taxCalculations, businessType),
+        
+        // Quality metrics
+        dataQuality: {
+          successRate: categorizedData.summary.successful / categorizedData.totalRows * 100,
+          categorizedTransactions: categorizedData.summary.successful,
+          excludedPersonal: categorizedData.summary.personal
         }
-      );
-
-      // Step 2: Identify capital allowance items using AI (COMPLEX - needs AI)
-      const capitalAllowanceItems = await this._identifyCapitalAllowanceItems(
-        categorizationResults,
-        businessType
-      );
+      };
 
       if (progressCallback) {
         progressCallback({
-          stage: 'capital_allowances',
-          stageDescription: 'Processing capital allowances with AI',
-          completed: 50,
-          total: 100,
-          percentage: 50
+          stage: 'submission',
+          percentage: 100,
+          stageDescription: 'Annual submission complete'
         });
       }
 
-      // Step 3: Use AI to format annual declaration (COMPLEX - needs AI)
-      const annualDeclaration = await this._formatAnnualDeclaration(
-        categorizationResults,
-        capitalAllowanceItems,
-        businessType,
-        quarterlyData
-      );
+      console.log('✅ Annual submission generated successfully:', {
+        submissionId: submission.submissionId,
+        income: submission.summary.totalIncome,
+        expenses: submission.summary.totalExpenses,
+        profit: submission.summary.netProfitLoss,
+        tax: submission.summary.taxOwed
+      });
 
-      // Step 4: Calculate final annual submission
-      const finalAnnualSubmission = this._finalizeAnnualSubmission(
-        annualDeclaration,
-        businessType,
-        categorizationResults,
-        capitalAllowanceItems
-      );
+    return { submission };
 
-      if (progressCallback) {
-        progressCallback({
-          stage: 'finalization',
-          stageDescription: 'Finalizing annual declaration',
-          completed: 100,
-          total: 100,
-          percentage: 100
-        });
-      }
+  } catch (error) {
+    console.error('❌ Annual declaration processing failed:', error.message);
+    throw new AppError(
+      `Failed to process annual declaration: ${error.message}`,
+      error.statusCode || 500,
+      'ANNUAL_DECLARATION_FAILED'
+    );
+  }
+}
 
-      console.log(`Annual declaration processing complete`);
-      return finalAnnualSubmission;
-
-    } catch (error) {
-      console.error('Annual declaration processing failed:', error.message);
-      throw new AppError(
-        `Failed to process annual declaration: ${error.message}`,
-        500,
-        this.config.errorCodes.ANNUAL_DECLARATION_FAILED
-      );
+// Add this new method to calculate totals from categorized transactions:
+_calculateFinancialTotalsFromCategorized(categorizedTransactions, businessType) {
+  console.log('🧮 Calculating financial totals from categorized transactions...');
+  
+  const totals = {
+    totalIncome: 0,
+    totalExpenses: 0,
+    netProfit: 0,
+    categoryBreakdown: {},
+    transactionCounts: {
+      income: 0,
+      expense: 0
     }
+  };
+
+  categorizedTransactions.forEach(transaction => {
+    const amount = Math.abs(parseFloat(transaction.amount) || 0);
+    const category = transaction.categorization?.category || 'other';
+    const aiAnalysis = transaction.categorization?.aiAnalysis || '';
+    
+    console.log(`💰 Processing transaction: £${amount} - ${category}`);
+    
+    // Determine if it's income or expense based on AI categorization
+    const isIncome = aiAnalysis.toLowerCase().includes('income') || 
+                    aiAnalysis.toLowerCase().includes('rental') ||
+                    aiAnalysis.toLowerCase().includes('revenue') ||
+                    category.toLowerCase().includes('income') ||
+                    category.toLowerCase().includes('turnover') ||
+                    category.toLowerCase().includes('periodamount');
+    
+    if (isIncome) {
+      totals.totalIncome += amount;
+      totals.transactionCounts.income++;
+      
+      // Track income categories
+      const incomeCategory = 'rental_income';
+      if (!totals.categoryBreakdown[incomeCategory]) {
+        totals.categoryBreakdown[incomeCategory] = 0;
+      }
+      totals.categoryBreakdown[incomeCategory] += amount;
+    } else {
+      totals.totalExpenses += amount;
+      totals.transactionCounts.expense++;
+      
+      // Track expense categories
+      if (!totals.categoryBreakdown[category]) {
+        totals.categoryBreakdown[category] = 0;
+      }
+      totals.categoryBreakdown[category] += amount;
+    }
+  });
+
+  totals.netProfit = totals.totalIncome - totals.totalExpenses;
+  
+  console.log('✅ Financial totals calculated:', {
+    income: totals.totalIncome,
+    expenses: totals.totalExpenses,
+    profit: totals.netProfit,
+    categories: Object.keys(totals.categoryBreakdown).length
+  });
+
+  return totals;
+}
+
+// Add this method for tax calculations:
+_calculateAnnualTax(financialTotals, businessType) {
+  console.log('🧮 Calculating annual tax obligations...');
+  
+  const calculations = {
+    incomeTax: 0,
+    nationalInsurance: 0,
+    allowances: {
+      personalAllowance: 12570, // 2023/24 rate
+      tradingAllowance: businessType === 'sole_trader' ? 1000 : 0
+    },
+    taxableProfit: 0
+  };
+
+  // Calculate taxable profit
+  calculations.taxableProfit = Math.max(0, 
+    financialTotals.netProfit - calculations.allowances.tradingAllowance
+  );
+
+  // Simple income tax calculation (basic rate)
+  if (calculations.taxableProfit > calculations.allowances.personalAllowance) {
+    const taxableIncome = calculations.taxableProfit - calculations.allowances.personalAllowance;
+    calculations.incomeTax = Math.round(taxableIncome * 0.2 * 100) / 100; // 20% basic rate
   }
 
-  /**
+  // National Insurance for sole traders (Class 2 & 4)
+  if (businessType === 'sole_trader' && financialTotals.netProfit > 6515) {
+    calculations.nationalInsurance = Math.round(
+      (calculations.taxableProfit * 0.09) * 100
+    ) / 100; // Simplified NI calculation
+  }
+
+  console.log('✅ Tax calculations complete:', calculations);
+  return calculations;
+}
+
+// Add this method for HMRC formatting:
+_formatForHMRC(financialTotals, taxCalculations, businessType) {
+  return {
+    income: financialTotals.totalIncome,
+    expenses: financialTotals.totalExpenses,
+    profit: financialTotals.netProfit,
+    taxOwed: taxCalculations.incomeTax + taxCalculations.nationalInsurance,
+    taxYear: new Date().getFullYear(),
+    businessType,
+    submissionFormat: 'MTD_ANNUAL',
+    calculationBreakdown: {
+      incomeTax: taxCalculations.incomeTax,
+      nationalInsurance: taxCalculations.nationalInsurance,
+      totalTax: taxCalculations.incomeTax + taxCalculations.nationalInsurance
+    }
+  };
+}  /**
    * Identify capital allowance items using AI (COMPLEX LOGIC)
    * @param {Object} categorizationResults - Categorized transactions
    * @param {string} businessType - Business type

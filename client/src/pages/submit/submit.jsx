@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import submitApiService from './submit.js';
 import './submit.css';
 
 const Submit = () => {
@@ -10,17 +11,34 @@ const Submit = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+  const [uploadConfig, setUploadConfig] = useState(null);
+  const [validationResult, setValidationResult] = useState(null);
+  const [businessType, setBusinessType] = useState('sole_trader');
+
+  // Load upload configuration on component mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const config = await submitApiService.getUploadConfig();
+        setUploadConfig(config.uploadConfig);
+        console.log('Upload config loaded:', config);
+      } catch (error) {
+        console.error('Failed to load upload config:', error);
+      }
+    };
+
+    loadConfig();
+  }, []);
 
   const handleVatToggle = () => {
     setIsVatRegistered(!isVatRegistered);
-    // Reset dependent fields when toggling
     setSubmissionType('');
     setQuarterPeriod('');
   };
 
   const handleSubmissionTypeChange = (e) => {
     setSubmissionType(e.target.value);
-    // Reset quarter period when changing submission type
     setQuarterPeriod('');
   };
 
@@ -28,19 +46,39 @@ const Submit = () => {
     setQuarterPeriod(e.target.value);
   };
 
-  const handleFileUpload = (file) => {
-    // Validate file type
-    const allowedTypes = [
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ];
-    
-    if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.xls') && !file.name.toLowerCase().endsWith('.xlsx')) {
-      alert('Please upload an Excel file (.xls or .xlsx)');
+  const handleFileUpload = async (file) => {
+    // Validate file type using config or defaults
+    const allowedFormats = uploadConfig?.allowedFormats || ['.xlsx', '.xls', '.csv'];
+    const isValidType = allowedFormats.some(format => 
+      file.name.toLowerCase().endsWith(format.toLowerCase())
+    );
+
+    if (!isValidType) {
+      alert(`Please upload a valid file. Supported formats: ${allowedFormats.join(', ')}`);
+      return;
+    }
+
+    // Check file size
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      alert('File size must be less than 10MB');
       return;
     }
 
     setUploadedFile(file);
+    setValidationResult(null);
+    setUploadStatus('');
+
+    // Validate file with backend
+    try {
+      setUploadStatus('Validating file...');
+      const validation = await submitApiService.validateFile(file);
+      setValidationResult(validation.validation);
+      setUploadStatus('File validated successfully');
+    } catch (error) {
+      console.error('File validation failed:', error);
+      setUploadStatus('File validation failed - but you can still try to upload');
+    }
   };
 
   const handleDrop = (e) => {
@@ -72,9 +110,12 @@ const Submit = () => {
 
   const removeFile = () => {
     setUploadedFile(null);
+    setValidationResult(null);
+    setUploadStatus('');
   };
 
   const handleSubmit = async () => {
+    // Validation
     if (!isVatRegistered) {
       alert('Please confirm VAT registration status');
       return;
@@ -91,31 +132,53 @@ const Submit = () => {
     }
 
     if (!uploadedFile) {
-      alert('Please upload an Excel file');
+      alert('Please upload a file');
       return;
     }
 
     setIsUploading(true);
+    setUploadStatus('Starting upload...');
 
     try {
-      // Simulate upload process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Here you would typically upload to your backend
-      console.log('Submitting:', {
-        vatRegistered: isVatRegistered,
-        submissionType,
-        quarterPeriod: submissionType === 'quarterly' ? quarterPeriod : null,
-        file: uploadedFile
-      });
+      // Prepare submission data for API
+      const submissionData = {
+        submissionType: submissionType,
+        businessType: businessType,
+        taxYear: new Date().getFullYear(),
+        ...(submissionType === 'quarterly' && { 
+          quarter: quarterPeriod 
+        })
+      };
 
-      alert('Submission successful!');
+      console.log('📋 Submission data:', submissionData);
+
+      setUploadStatus('Processing spreadsheet...');
+
+      // Upload and process file
+      const response = await submitApiService.processSpreadsheet(uploadedFile, submissionData);
       
+      // Parse response for user-friendly display
+      const result = submitApiService.parseSubmissionResponse(response);
+
+      setUploadStatus('Upload completed successfully!');
+
+      // Show success message with details
+      alert(result.message);
+
       // Navigate back to home after successful submission
-      navigate('/');
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
       
     } catch (error) {
-      alert('Upload failed. Please try again.');
+      setUploadStatus('Upload failed');
+      
+      // Handle different error types
+      const errorInfo = submitApiService.handleApiError(error);
+      
+      // Show appropriate error message
+      alert(`Upload failed: ${errorInfo.message}`);
+      
       console.error('Upload error:', error);
     } finally {
       setIsUploading(false);
@@ -126,7 +189,7 @@ const Submit = () => {
     navigate('/');
   };
 
-  // Icon components
+  // Icon components (keeping existing ones)
   const UploadIcon = () => (
     <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -162,6 +225,12 @@ const Submit = () => {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M19 12H5"/>
       <path d="M12 19l-7-7 7-7"/>
+    </svg>
+  );
+
+  const CheckIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="20,6 9,17 4,12"/>
     </svg>
   );
 
@@ -208,7 +277,7 @@ const Submit = () => {
               >
                 <option value="">Select submission type</option>
                 <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
+                <option value="yearly">Annual</option>
               </select>
             </div>
           )}
@@ -234,10 +303,39 @@ const Submit = () => {
             </div>
           )}
 
+          {/* Business Type Selection */}
+          {isVatRegistered && (
+            <div className="form-section">
+              <label className="form-label">Business Type</label>
+              <div className="radio-group">
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    value="sole_trader"
+                    checked={businessType === 'sole_trader'}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                  />
+                  <span>Sole Trader</span>
+                </label>
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="businessType"
+                    value="landlord"
+                    checked={businessType === 'landlord'}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                  />
+                  <span>Landlord</span>
+                </label>
+              </div>
+            </div>
+          )}
+
           {/* File Upload Section */}
           {isVatRegistered && submissionType && (submissionType === 'yearly' || quarterPeriod) && (
             <div className="form-section">
-              <label className="form-label">Upload Excel File</label>
+              <label className="form-label">Upload File</label>
               
               {!uploadedFile ? (
                 <div
@@ -248,14 +346,16 @@ const Submit = () => {
                   onClick={() => document.getElementById('file-input').click()}
                 >
                   <UploadIcon />
-                  <h3>Drag and drop your Excel file here</h3>
+                  <h3>Drag and drop your file here</h3>
                   <p>or click to browse files</p>
-                  <span className="file-types">Supports .xls and .xlsx files</span>
+                  <span className="file-types">
+                    Supports {uploadConfig?.allowedFormats?.join(', ') || '.xlsx, .xls, .csv'} files
+                  </span>
                   
                   <input
                     id="file-input"
                     type="file"
-                    accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    accept=".xls,.xlsx,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                     onChange={handleFileSelect}
                     style={{ display: 'none' }}
                   />
@@ -269,11 +369,27 @@ const Submit = () => {
                       <span className="file-size">
                         {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                       </span>
+                      {validationResult && (
+                        <div className="validation-info">
+                          <CheckIcon />
+                          <span>
+                            {validationResult.estimatedRows} rows detected, 
+                            {validationResult.detectedColumns?.length || 0} columns
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <button className="remove-file" onClick={removeFile}>
                       <RemoveIcon />
                     </button>
                   </div>
+                  
+                  {/* Upload Status */}
+                  {uploadStatus && (
+                    <div className="upload-status">
+                      <p>{uploadStatus}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -290,7 +406,7 @@ const Submit = () => {
                 {isUploading ? (
                   <>
                     <LoadingIcon />
-                    <span>Uploading...</span>
+                    <span>Processing...</span>
                   </>
                 ) : (
                   <span>Submit to HMRC</span>

@@ -325,6 +325,42 @@
   to { transform: rotate(360deg); }
 }
 
+/* Radio button group */
+.radio-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.radio-option:hover {
+  background-color: #f9fafb;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.radio-option span {
+  font-size: 0.875rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: #2563eb;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .submit-container {
