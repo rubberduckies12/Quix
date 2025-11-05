@@ -20,6 +20,10 @@ const Submit = () => {
   // Popup state
   const [showResultsPopup, setShowResultsPopup] = useState(false);
   const [categorizedData, setCategorizedData] = useState(null);
+  
+  // Dynamic loading messages
+  const [loadingMessage, setLoadingMessage] = useState('Processing...');
+  const [loadingInterval, setLoadingInterval] = useState(null);
 
   // Load upload configuration on component mount
   useEffect(() => {
@@ -34,7 +38,14 @@ const Submit = () => {
     };
 
     loadConfig();
-  }, []);
+    
+    // Cleanup interval on unmount
+    return () => {
+      if (loadingInterval) {
+        clearInterval(loadingInterval);
+      }
+    };
+  }, [loadingInterval]);
 
   const handleVatToggle = () => {
     setIsVatRegistered(!isVatRegistered);
@@ -119,6 +130,36 @@ const Submit = () => {
     setUploadStatus('');
   };
 
+  // Dynamic loading messages
+  const startLoadingMessages = () => {
+    const messages = [
+      'Reading your spreadsheet...',
+      'Analyzing transaction data...',
+      'Categorizing transactions...',
+      'Processing business expenses...',
+      'Formatting for HMRC...',
+      'Finalizing results...'
+    ];
+    
+    let currentIndex = 0;
+    setLoadingMessage(messages[0]);
+    
+    const interval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % messages.length;
+      setLoadingMessage(messages[currentIndex]);
+    }, 2000); // Change message every 2 seconds
+    
+    setLoadingInterval(interval);
+  };
+
+  const stopLoadingMessages = () => {
+    if (loadingInterval) {
+      clearInterval(loadingInterval);
+      setLoadingInterval(null);
+    }
+    setLoadingMessage('Processing...');
+  };
+
   const handleSubmit = async () => {
     // Validation
     if (!isVatRegistered) {
@@ -143,6 +184,7 @@ const Submit = () => {
 
     setIsUploading(true);
     setUploadStatus('Starting upload...');
+    startLoadingMessages(); // Start dynamic loading messages
 
     try {
       // Prepare submission data for API
@@ -198,6 +240,7 @@ const Submit = () => {
       console.error('Upload error:', error);
     } finally {
       setIsUploading(false);
+      stopLoadingMessages(); // Stop dynamic loading messages
     }
   };
 
@@ -241,9 +284,7 @@ const Submit = () => {
   );
 
   const LoadingIcon = () => (
-    <div className="loading-spinner">
-      <div className="spinner"></div>
-    </div>
+    <div className="spinner-circle"></div>
   );
 
   const BackIcon = () => (
@@ -431,10 +472,10 @@ const Submit = () => {
                 {isUploading ? (
                   <>
                     <LoadingIcon />
-                    <span>Processing...</span>
+                    <span>{loadingMessage}</span>
                   </>
                 ) : (
-                  <span>Submit to HMRC</span>
+                  <span>Process Spreadsheet</span>
                 )}
               </button>
             </div>
