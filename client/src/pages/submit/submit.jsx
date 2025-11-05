@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import submitApiService from './submit.js';
+import DisplayTransactions from '../displayTransactions/displayTransactions.jsx';
 import './submit.css';
 
 const Submit = () => {
@@ -15,6 +16,10 @@ const Submit = () => {
   const [uploadConfig, setUploadConfig] = useState(null);
   const [validationResult, setValidationResult] = useState(null);
   const [businessType, setBusinessType] = useState('sole_trader');
+  
+  // Popup state
+  const [showResultsPopup, setShowResultsPopup] = useState(false);
+  const [categorizedData, setCategorizedData] = useState(null);
 
   // Load upload configuration on component mount
   useEffect(() => {
@@ -157,18 +162,29 @@ const Submit = () => {
       // Upload and process file
       const response = await submitApiService.processSpreadsheet(uploadedFile, submissionData);
       
-      // Parse response for user-friendly display
-      const result = submitApiService.parseSubmissionResponse(response);
+      console.log('✅ Full API response:', response);
 
-      setUploadStatus('Upload completed successfully!');
+      setUploadStatus('Processing complete!');
 
-      // Show success message with details
-      alert(result.message);
-
-      // Navigate back to home after successful submission
-      setTimeout(() => {
-        navigate('/');
-      }, 2000);
+      // Show popup with categorized data
+      let categorizedDataToShow = null;
+      
+      if (response && response.categorizedData) {
+        categorizedDataToShow = response.categorizedData;
+      } else if (response.data && response.data.categorizedData) {
+        categorizedDataToShow = response.data.categorizedData;
+      } else if (response.result && response.result.categorizedData) {
+        categorizedDataToShow = response.result.categorizedData;
+      }
+      
+      if (categorizedDataToShow) {
+        console.log('✅ Showing categorized data in popup:', categorizedDataToShow);
+        setCategorizedData(categorizedDataToShow);
+        setShowResultsPopup(true);
+      } else {
+        console.warn('⚠️ No categorized data found in response');
+        alert('Upload successful but no categorization data available');
+      }
       
     } catch (error) {
       setUploadStatus('Upload failed');
@@ -183,6 +199,15 @@ const Submit = () => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleClosePopup = () => {
+    setShowResultsPopup(false);
+    setCategorizedData(null);
+    // Reset form for next upload
+    setUploadedFile(null);
+    setValidationResult(null);
+    setUploadStatus('');
   };
 
   const handleBackToHome = () => {
@@ -216,9 +241,9 @@ const Submit = () => {
   );
 
   const LoadingIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="loading-spinner">
-      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-    </svg>
+    <div className="loading-spinner">
+      <div className="spinner"></div>
+    </div>
   );
 
   const BackIcon = () => (
@@ -416,6 +441,15 @@ const Submit = () => {
           )}
         </div>
       </div>
+
+      {/* Results Popup */}
+      {showResultsPopup && categorizedData && (
+        <DisplayTransactions 
+          categorizedData={categorizedData}
+          isOpen={showResultsPopup}
+          onClose={handleClosePopup}
+        />
+      )}
     </div>
   );
 };

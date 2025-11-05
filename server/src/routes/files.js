@@ -242,6 +242,15 @@ router.post('/process',
           manualReviewRequired: categorizationResults.summary.manualReviewRequired || 0
         },
         
+        // 🎯 ADD THIS: Direct categorization results for frontend display
+        categorizedData: {
+          frontendSummary: categorizationResults.frontendSummary,
+          summary: categorizationResults.summary,
+          businessType: businessType || 'sole_trader',
+          categoryTotals: categorizationResults.categoryTotals,
+          processingDate: categorizationResults.processingDate
+        },
+        
         // Main submission data
         submission: submissionResult,
         

@@ -139,6 +139,7 @@ class CategorizationUtil {
   _extractTransactionData(row) {
     let amount = 0;
     let description = '';
+    let boxNumber = '';
 
     // Skip calculated totals and empty rows
     if (this._isCalculatedTotal(row)) {
@@ -146,48 +147,53 @@ class CategorizationUtil {
       return { amount: 0, description: '', skip: true };
     }
 
-    // Extract Box number if present
-    if (row.Box) {
-      description = `Box ${row.Box}`;
+    // Extract Box number first
+    if (row.Box && row.Box.toString().trim()) {
+      boxNumber = row.Box.toString().trim();
+      description = `Box ${boxNumber}`;
     }
 
-    // Find description and amount from all fields
+    // Find the amount - prioritize the unnamed column which contains the actual values
     for (const [key, value] of Object.entries(row)) {
       if (key.startsWith('_') || !value) continue;
 
-      // Try to extract amount
-      if (typeof value === 'string' || typeof value === 'number') {
+      // The actual amounts are in the empty key column ""
+      if (key === '' && value) {
         const cleanValue = String(value).replace(/[£$,\s]/g, '');
         const numValue = parseFloat(cleanValue);
-        if (!isNaN(numValue) && numValue > 0 && amount === 0) {
+        if (!isNaN(numValue) && numValue > 0) {
           amount = numValue;
-        }
-
-        // Build description from meaningful text (not n/a)
-        if (typeof value === 'string' && value.trim() && key !== 'Box' && 
-            !/^\s*[\d\.,£$-]+\s*$/.test(value) && 
-            !value.toLowerCase().includes('n/a') &&
-            !value.toLowerCase().includes('total') &&
-            !value.toLowerCase().includes('taxable') &&
-            !value.toLowerCase().includes('gross profit')) {
-          if (description && !description.includes(value.trim())) {
-            description += ` - ${value.trim()}`;
-          } else if (!description) {
-            description = value.trim();
-          }
+          break; // Found the amount, stop looking
         }
       }
     }
 
-    // Skip if no meaningful data or if it's n/a
-    if (amount === 0 || description.toLowerCase().includes('n/a') || !description) {
-      console.log('⏭️ Skipping empty or n/a row');
+    // If no amount found in empty column, try other columns
+    if (amount === 0) {
+      for (const [key, value] of Object.entries(row)) {
+        if (key.startsWith('_') || key === 'Box' || !value) continue;
+        
+        const cleanValue = String(value).replace(/[£$,\s]/g, '');
+        const numValue = parseFloat(cleanValue);
+        if (!isNaN(numValue) && numValue > 0) {
+          amount = numValue;
+          break;
+        }
+      }
+    }
+
+    // Skip if no meaningful data
+    if (amount === 0 || !description) {
+      console.log('⏭️ Skipping empty row');
       return { amount: 0, description: '', skip: true };
     }
 
+    console.log(`💰 Extracted: £${amount} - ${description}`);
+
     return {
       amount: amount,
-      description: description || 'Business transaction',
+      description: description,
+      boxNumber: boxNumber,
       skip: false
     };
   }
@@ -279,14 +285,14 @@ class CategorizationUtil {
           messages: [
             {
               role: 'system',
-              content: `You are an expert UK tax advisor for HMRC Making Tax Digital. Categorize transactions for ${businessType === 'landlord' ? 'property rental business' : 'sole trader business'}. Respond with JSON only: {"category": "category_name", "reasoning": "explanation", "confidence": 0.95}`
+              content: `You are an expert UK tax advisor for HMRC Making Tax Digital. Categorize transactions for ${businessType === 'landlord' ? 'property rental business' : 'sole trader business'}. Respond with JSON only: {"category": "category_name", "type": "income_or_expense"}`
             },
             {
               role: 'user',
               content: prompt
             }
           ],
-          max_tokens: 150,
+          max_tokens: 100,
           temperature: 0.1
         })
       });
@@ -308,23 +314,21 @@ class CategorizationUtil {
         const categoryMatch = aiResponse.match(/category[":]\s*["']?(\w+)["']?/i);
         categoryData = {
           category: categoryMatch ? categoryMatch[1] : 'other',
-          reasoning: 'AI response parsing fallback',
-          confidence: 0.7
+          type: 'expense'
         };
       }
 
-      console.log(`✅ AI categorized as: ${categoryData.category} (confidence: ${categoryData.confidence})`);
+      console.log(`✅ AI categorized as: ${categoryData.category} (${categoryData.type})`);
 
       return {
         category: categoryData.category || 'other',
-        aiAnalysis: categoryData.reasoning || 'AI categorized transaction',
         categoryDescription: this._getCategoryDescription(categoryData.category || 'other'),
-        confidence: categoryData.confidence || 0.8
+        type: categoryData.type || 'expense'
       };
 
     } catch (error) {
       console.error('❌ OpenAI categorization failed:', error.message);
-      throw error; // Re-throw to handle in main loop
+      throw error;
     }
   }
 
@@ -335,22 +339,26 @@ class CategorizationUtil {
     const businessContext = businessType === 'landlord' ? 'UK property rental business' : 'UK sole trader business';
     
     const categories = businessType === 'landlord' ? 
-      'premiumsOfLeaseGrant, reversePremiums, periodAmount, taxDeducted, premisesRunningCosts, repairsAndMaintenance, financialCosts, professionalFees, costOfServices, travelCosts, other, PERSONAL' :
-      'turnover, costOfGoodsBought, cisPaymentsToSubcontractors, staffCosts, travelCosts, premisesRunningCosts, maintenanceCosts, adminCosts, advertisingCosts, businessEntertainmentCosts, interestOnBankOtherLoans, financialCharges, badDebt, professionalFees, depreciation, other, PERSONAL';
+      'periodAmount (income), financialCosts (expense), premisesRunningCosts (expense), repairsAndMaintenance (expense), professionalFees (expense), costOfServices (expense), other (expense)' :
+      'turnover (income), costOfGoodsBought (expense), staffCosts (expense), travelCosts (expense), premisesRunningCosts (expense), adminCosts (expense), professionalFees (expense), other (expense)';
 
-    return `Categorize this ${businessContext} transaction for HMRC Making Tax Digital:
+    return `Categorize this ${businessContext} transaction for HMRC:
 
 Amount: £${transactionData.amount}
 Description: ${transactionData.description}
 
 Available categories: ${categories}
 
-Rules:
-- Use "PERSONAL" for non-business transactions
-- For property business: Box 20 = periodAmount (rental income), Box 44 = financialCosts, Box 24 = premisesRunningCosts, Box 25 = repairsAndMaintenance, Box 27 = professionalFees, Box 28 = costOfServices
-- For sole trader: Income = turnover, Expenses = appropriate expense category
+Rules for property business:
+- Box 20 = periodAmount (rental income)
+- Box 44 = financialCosts (mortgage interest, loan costs)
+- Box 24 = premisesRunningCosts (rent, rates, insurance)
+- Box 25 = repairsAndMaintenance (property repairs)
+- Box 27 = professionalFees (legal, management fees)
+- Box 28 = costOfServices (gardening, cleaning)
+- Box 29 = other (other allowable expenses)
 
-Respond with JSON: {"category": "exact_category_name", "reasoning": "why this category", "confidence": 0.95}`;
+Respond with JSON: {"category": "exact_category_name", "type": "income_or_expense"}`;
   }
 
   /**
@@ -400,6 +408,7 @@ Respond with JSON: {"category": "exact_category_name", "reasoning": "why this ca
         summary.push({
           category: category,
           categoryDescription: this._getCategoryDescription(category),
+          type: this._getCategoryType(category),
           totalAmount: totalAmount,
           formattedAmount: `£${totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         });
@@ -410,6 +419,14 @@ Respond with JSON: {"category": "exact_category_name", "reasoning": "why this ca
     summary.sort((a, b) => b.totalAmount - a.totalAmount);
 
     return summary;
+  }
+
+  /**
+   * Get category type (income/expense)
+   */
+  _getCategoryType(category) {
+    const incomeCategories = ['periodAmount', 'turnover', 'premiumsOfLeaseGrant'];
+    return incomeCategories.includes(category) ? 'income' : 'expense';
   }
 }
 
