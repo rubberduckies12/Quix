@@ -1,8 +1,8 @@
 import Head from 'next/head';
 import { GetStaticProps } from 'next';
-import About from './about';
+import LoginPage from './login';
 
-interface AboutPageProps {
+interface LoginIndexProps {
   metadata: {
     title: string;
     description: string;
@@ -11,7 +11,7 @@ interface AboutPageProps {
   };
 }
 
-export default function Index({ metadata }: AboutPageProps) {
+export default function Index({ metadata }: LoginIndexProps) {
   return (
     <>
       <Head>
@@ -39,38 +39,18 @@ export default function Index({ metadata }: AboutPageProps) {
         {/* Additional SEO */}
         <meta name="author" content="Quix" />
         <meta name="language" content="en-GB" />
-        
-        {/* JSON-LD Structured Data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "AboutPage",
-              "name": "About Quix",
-              "description": metadata.description,
-              "url": metadata.canonicalUrl,
-              "mainEntity": {
-                "@type": "Organization",
-                "name": "Quix",
-                "description": "Automated MTD tax compliance software for UK businesses",
-                "url": "https://quix.co.uk"
-              }
-            })
-          }}
-        />
       </Head>
-      <About />
+      <LoginPage />
     </>
   );
 }
 
-export const getStaticProps: GetStaticProps<AboutPageProps> = async () => {
+export const getStaticProps: GetStaticProps<LoginIndexProps> = async () => {
   const metadata = {
-    title: "About Quix - Simplifying UK Tax Compliance | MTD Software Company",
-    description: "Learn about Quix's mission to simplify UK tax compliance through automated MTD software. Discover our story, values, and commitment to helping small businesses with tax submissions.",
-    keywords: "About Quix, MTD software company, UK tax compliance, automated bookkeeping, small business solutions, tax technology, HMRC compliance",
-    canonicalUrl: "https://quix.co.uk/about"
+    title: "Login to Quix - Access Your MTD Tax Dashboard | Secure Sign In",
+    description: "Sign in to your Quix account to access automated MTD tax compliance features, manage submissions, and track your quarterly returns securely.",
+    keywords: "Quix login, MTD account access, tax dashboard login, secure sign in, account management",
+    canonicalUrl: "https://quix.co.uk/login"
   };
 
   return {

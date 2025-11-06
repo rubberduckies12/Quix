@@ -1,8 +1,8 @@
 import Head from 'next/head';
 import { GetStaticProps } from 'next';
-import About from './about';
+import RegisterPage from './register';
 
-interface AboutPageProps {
+interface RegisterIndexProps {
   metadata: {
     title: string;
     description: string;
@@ -11,7 +11,7 @@ interface AboutPageProps {
   };
 }
 
-export default function Index({ metadata }: AboutPageProps) {
+export default function Index({ metadata }: RegisterIndexProps) {
   return (
     <>
       <Head>
@@ -39,38 +39,18 @@ export default function Index({ metadata }: AboutPageProps) {
         {/* Additional SEO */}
         <meta name="author" content="Quix" />
         <meta name="language" content="en-GB" />
-        
-        {/* JSON-LD Structured Data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "AboutPage",
-              "name": "About Quix",
-              "description": metadata.description,
-              "url": metadata.canonicalUrl,
-              "mainEntity": {
-                "@type": "Organization",
-                "name": "Quix",
-                "description": "Automated MTD tax compliance software for UK businesses",
-                "url": "https://quix.co.uk"
-              }
-            })
-          }}
-        />
       </Head>
-      <About />
+      <RegisterPage />
     </>
   );
 }
 
-export const getStaticProps: GetStaticProps<AboutPageProps> = async () => {
+export const getStaticProps: GetStaticProps<RegisterIndexProps> = async () => {
   const metadata = {
-    title: "About Quix - Simplifying UK Tax Compliance | MTD Software Company",
-    description: "Learn about Quix's mission to simplify UK tax compliance through automated MTD software. Discover our story, values, and commitment to helping small businesses with tax submissions.",
-    keywords: "About Quix, MTD software company, UK tax compliance, automated bookkeeping, small business solutions, tax technology, HMRC compliance",
-    canonicalUrl: "https://quix.co.uk/about"
+    title: "Create Quix Account - Start Your MTD Tax Journey | Free Registration",
+    description: "Create your free Quix account to access automated MTD tax compliance features. Join thousands of UK businesses simplifying their tax submissions.",
+    keywords: "Quix registration, create account, MTD signup, free tax software account, UK business registration",
+    canonicalUrl: "https://quix.co.uk/register"
   };
 
   return {
