@@ -74,8 +74,23 @@ router.post('/process',
       console.log('🔍 DEBUG - Received request body:', req.body);
       console.log('🔍 DEBUG - Received file:', req.file ? req.file.originalname : 'No file');
 
-      const { submissionType, businessType, quarter } = req.body;
+      const { submissionType, businessType, quarter, submissionOptions } = req.body;
       const file = req.file;
+
+      // Parse submission options if provided
+      let parsedSubmissionOptions = {};
+      if (submissionOptions) {
+        try {
+          parsedSubmissionOptions = typeof submissionOptions === 'string' 
+            ? JSON.parse(submissionOptions) 
+            : submissionOptions;
+        } catch (error) {
+          console.warn('Failed to parse submission options:', error);
+          parsedSubmissionOptions = {};
+        }
+      }
+
+      console.log('🔍 DEBUG - Parsed submission options:', parsedSubmissionOptions);
 
       // Basic checks only
       if (!file) {
@@ -197,12 +212,14 @@ router.post('/process',
       
       if (submissionType === 'quarterly') {
         console.log('🔍 DEBUG - Calling quarterly submission with quarter:', normalizedQuarter);
+        console.log('🔍 DEBUG - Submission options:', parsedSubmissionOptions);
         
-        // Generate quarterly submission with normalized quarter
+        // Generate quarterly submission with normalized quarter and options
         submissionResult = await processQuarterlySubmission(
           categorizationResults,
           normalizedQuarter || 'q1', // Use normalized quarter
           businessType || 'sole_trader',
+          parsedSubmissionOptions, // Pass submission options
           progressCallback
         );
       } else {

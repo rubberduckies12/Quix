@@ -17,6 +17,12 @@ const Submit = () => {
   const [validationResult, setValidationResult] = useState(null);
   const [businessType, setBusinessType] = useState('sole_trader');
   
+  // Submission options for Q2+ quarterly submissions
+  const [submissionOptions, setSubmissionOptions] = useState({
+    spreadsheetType: '', // 'different_per_quarter', 'same_cumulative', 'same_separated'
+    previousQuarterData: null
+  });
+  
   // Popup state
   const [showResultsPopup, setShowResultsPopup] = useState(false);
   const [categorizedData, setCategorizedData] = useState(null);
@@ -54,10 +60,20 @@ const Submit = () => {
   const handleSubmissionTypeChange = (e) => {
     setSubmissionType(e.target.value);
     setQuarterPeriod('');
+    // Reset submission options when changing submission type
+    setSubmissionOptions({
+      spreadsheetType: '',
+      previousQuarterData: null
+    });
   };
 
   const handleQuarterChange = (e) => {
     setQuarterPeriod(e.target.value);
+    // Reset submission options when changing quarter
+    setSubmissionOptions({
+      spreadsheetType: '',
+      previousQuarterData: null
+    });
   };
 
   const handleFileUpload = async (file) => {
@@ -175,6 +191,12 @@ const Submit = () => {
       return;
     }
 
+    // For Q2+ quarterly submissions, check if submission options are needed
+    if (submissionType === 'quarterly' && quarterPeriod !== 'q1' && !submissionOptions.spreadsheetType) {
+      alert('Please specify how your spreadsheet is organized for this quarter');
+      return;
+    }
+
     if (!uploadedFile) {
       alert('Please upload a file');
       return;
@@ -192,6 +214,10 @@ const Submit = () => {
         taxYear: new Date().getFullYear(),
         ...(submissionType === 'quarterly' && { 
           quarter: quarterPeriod 
+        }),
+        // Include submission options for quarterly submissions
+        ...(submissionType === 'quarterly' && quarterPeriod !== 'q1' && {
+          submissionOptions: submissionOptions
         })
       };
 
@@ -363,6 +389,81 @@ const Submit = () => {
                 <option value="q3">Q3 (Jul - Sep)</option>
                 <option value="q4">Q4 (Oct - Dec)</option>
               </select>
+            </div>
+          )}
+
+          {/* Submission Options for Q2+ */}
+          {isDataConfirmed && submissionType === 'quarterly' && quarterPeriod && quarterPeriod !== 'q1' && (
+            <div className="form-section">
+              <label className="form-label">Spreadsheet Organization</label>
+              <p className="form-description">
+                How is your spreadsheet organized for this quarter ({quarterPeriod.toUpperCase()})?
+              </p>
+              <div className="radio-group">
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="spreadsheetType"
+                    value="different_per_quarter"
+                    checked={submissionOptions.spreadsheetType === 'different_per_quarter'}
+                    onChange={(e) => setSubmissionOptions({
+                      ...submissionOptions,
+                      spreadsheetType: e.target.value
+                    })}
+                  />
+                  <div className="radio-content">
+                    <span>Different spreadsheet for each quarter</span>
+                    <small>I have separate files for each quarter (e.g., Q1.xlsx, Q2.xlsx)</small>
+                  </div>
+                </label>
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="spreadsheetType"
+                    value="same_cumulative"
+                    checked={submissionOptions.spreadsheetType === 'same_cumulative'}
+                    onChange={(e) => setSubmissionOptions({
+                      ...submissionOptions,
+                      spreadsheetType: e.target.value
+                    })}
+                  />
+                  <div className="radio-content">
+                    <span>Same spreadsheet with running totals</span>
+                    <small>Running totals that include previous quarters (we'll calculate the difference)</small>
+                  </div>
+                </label>
+                <label className="radio-option">
+                  <input
+                    type="radio"
+                    name="spreadsheetType"
+                    value="same_separated"
+                    checked={submissionOptions.spreadsheetType === 'same_separated'}
+                    onChange={(e) => setSubmissionOptions({
+                      ...submissionOptions,
+                      spreadsheetType: e.target.value
+                    })}
+                  />
+                  <div className="radio-content">
+                    <span>Same spreadsheet with separated quarters</span>
+                    <small>Quarters are clearly labeled in sections (e.g., "Q1", "Q2" headers)</small>
+                  </div>
+                </label>
+              </div>
+              {submissionOptions.spreadsheetType && (
+                <div className="submission-tip">
+                  <p>
+                    {submissionOptions.spreadsheetType === 'different_per_quarter' && (
+                      "✅ Upload just your " + quarterPeriod.toUpperCase() + " spreadsheet - we'll process only that quarter's data."
+                    )}
+                    {submissionOptions.spreadsheetType === 'same_cumulative' && (
+                      "🔍 We'll automatically calculate the difference between your current totals and previous quarters."
+                    )}
+                    {submissionOptions.spreadsheetType === 'same_separated' && (
+                      "📊 We'll automatically find and extract only the " + quarterPeriod.toUpperCase() + " section from your spreadsheet."
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
