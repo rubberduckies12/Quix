@@ -1,0 +1,311 @@
+/* Register Page Styles - Matching home.tsx design */
+
+/* Container and Layout */
+.register-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background Grid Pattern */
+.grid-background {
+  position: fixed;
+  inset: 0;
+  opacity: 0.1;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(to right, #22c55e 1px, transparent 1px),
+    linear-gradient(to bottom, #22c55e 1px, transparent 1px);
+  background-size: 40px 30px;
+}
+
+/* Form Container */
+.register-form-container {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  border-radius: 24px;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.1);
+  transition: all 0.3s ease;
+}
+
+.register-form-container:hover {
+  box-shadow: 
+    0 32px 64px -12px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(34, 197, 94, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Input Fields */
+.register-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.register-input:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.register-input.error {
+  border-color: #ef4444;
+  background: rgba(254, 242, 242, 0.5);
+}
+
+.register-input.success {
+  border-color: #22c55e;
+  background: rgba(240, 253, 244, 0.5);
+}
+
+/* Labels */
+.register-label {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+  font-size: 14px;
+  letter-spacing: 0.025em;
+}
+
+/* Button Styles */
+.register-button {
+  width: 100%;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  font-weight: 700;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 
+    0 10px 25px -3px rgba(34, 197, 94, 0.3),
+    0 4px 6px -2px rgba(34, 197, 94, 0.05);
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.register-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  box-shadow: 
+    0 20px 40px -3px rgba(34, 197, 94, 0.4),
+    0 8px 12px -2px rgba(34, 197, 94, 0.1);
+  transform: translateY(-1px);
+}
+
+.register-button:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Password Strength Indicator */
+.password-strength-bar {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.password-strength-fill {
+  height: 100%;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+}
+
+.strength-weak { background: #ef4444; }
+.strength-fair { background: #f59e0b; }
+.strength-good { background: #3b82f6; }
+.strength-strong { background: #22c55e; }
+
+/* Error Messages */
+.error-message {
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.success-message {
+  color: #16a34a;
+  font-size: 14px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Logo Styles */
+.register-logo {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px -3px rgba(34, 197, 94, 0.3);
+  margin: 0 auto 24px auto;
+}
+
+.register-logo span {
+  color: white;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1;
+}
+
+/* Animations for mobile optimization */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .register-form-container {
+    margin: 16px;
+    padding: 24px;
+  }
+  
+  .register-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 14px 16px;
+  }
+  
+  .register-button {
+    padding: 18px 24px;
+    font-size: 16px;
+  }
+  
+  /* Disable hover effects on mobile */
+  .register-form-container:hover {
+    transform: none;
+  }
+  
+  .register-button:hover {
+    transform: none;
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .register-form-container {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+/* Desktop Styles */
+@media (min-width: 1024px) {
+  .register-form-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 48px;
+  }
+}
+
+/* Focus Styles for Accessibility */
+.register-input:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+.register-button:focus-visible {
+  outline: 2px solid #22c55e;
+  outline-offset: 2px;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Email Status Icons */
+.email-status-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+}
+
+/* Features List */
+.features-preview {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #22c55e;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Back Link */
+.back-link {
+  color: #22c55e;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s ease;
+  margin-bottom: 24px;
+}
+
+.back-link:hover {
+  color: #16a34a;
+}
+
+/* Grid Layout for Name Fields */
+.name-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .name-grid {
+    grid-template-columns: 1fr;
+  }
+}
