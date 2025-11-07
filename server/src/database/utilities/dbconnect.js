@@ -1,12 +1,31 @@
 const { Pool } = require('pg');
 
-// Simple database configuration
+// Database configuration
 const pool = new Pool({
   user: process.env.DB_USER || 'postgres',
   host: process.env.DB_HOST || 'localhost',
   database: process.env.DB_NAME || 'quix_mtd',
   password: process.env.DB_PASSWORD || 'your_password_here',
   port: process.env.DB_PORT || 5432,
+  ssl: false, // localhost connection
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
+
+// Test connection on startup
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('❌ Database connection error:', err.stack);
+  } else {
+    console.log('✅ Connected to PostgreSQL database: quix_mtd');
+    release();
+  }
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  console.error('❌ Unexpected database error:', err);
 });
 
 // Simple query function

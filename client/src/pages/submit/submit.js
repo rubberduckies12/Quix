@@ -174,6 +174,41 @@ class SubmitApiService {
     return message;
   }
 
+  // Save submission to database
+  async saveSubmission(submissionData, userId = 1) {
+    console.log('💾 Saving submission to database:', {
+      submissionType: submissionData.submissionType,
+      quarter: submissionData.quarter,
+      userId
+    });
+
+    return this.request('/api/submissions/save', {
+      method: 'POST',
+      body: JSON.stringify({
+        submissionData,
+        userId
+      }),
+    });
+  }
+
+  // Get user submissions
+  async getUserSubmissions(userId = 1) {
+    return this.request(`/api/submissions/list?userId=${userId}`);
+  }
+
+  // Get submission details
+  async getSubmissionDetails(uploadId) {
+    return this.request(`/api/submissions/${uploadId}`);
+  }
+
+  // Update submission status
+  async updateSubmissionStatus(uploadId, status) {
+    return this.request(`/api/submissions/${uploadId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
   // Handle API errors with user-friendly messages
   handleApiError(error) {
     console.error('Submit API Error:', error);

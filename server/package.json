@@ -16,6 +16,7 @@
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.3",
     "exceljs": "^4.4.0",

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import submitApiService from '../submit/submit.js';
 import './displayTransactions.css';
 
-const DisplayTransactions = ({ categorizedData, isOpen, onClose }) => {
+const DisplayTransactions = ({ categorizedData, isOpen, onClose, fullSubmissionData }) => {
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
   console.log('DisplayTransactions received props:', { categorizedData, isOpen });
 
   if (!isOpen) {
@@ -48,6 +52,41 @@ const DisplayTransactions = ({ categorizedData, isOpen, onClose }) => {
       style: 'currency',
       currency: 'GBP'
     }).format(amount);
+  };
+
+  const handleSaveSubmission = async () => {
+    if (!fullSubmissionData) {
+      alert('No submission data available to save');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveStatus('Saving submission...');
+
+    try {
+      const result = await submitApiService.saveSubmission(fullSubmissionData);
+      
+      console.log('✅ Submission saved:', result);
+      
+      setIsSaved(true);
+      setSaveStatus(`Saved successfully! Upload ID: ${result.data.uploadId}`);
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSaveStatus('');
+      }, 3000);
+
+    } catch (error) {
+      console.error('❌ Save failed:', error);
+      setSaveStatus('Failed to save submission');
+      
+      // Auto-hide error message after 5 seconds
+      setTimeout(() => {
+        setSaveStatus('');
+      }, 5000);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -112,10 +151,63 @@ const DisplayTransactions = ({ categorizedData, isOpen, onClose }) => {
               )}</span>
             </div>
           </div>
+
+          {/* Action Buttons */}
+          <div className="modal-actions">
+            {saveStatus && (
+              <div className={`save-status ${isSaved ? 'success' : 'error'}`}>
+                {saveStatus}
+              </div>
+            )}
+            
+            <div className="button-group">
+              <button 
+                className={`save-button ${isSaved ? 'saved' : ''}`}
+                onClick={handleSaveSubmission}
+                disabled={isSaving || isSaved}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="spinner"></div>
+                    Saving...
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <CheckIcon />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon />
+                    Save Submission
+                  </>
+                )}
+              </button>
+              
+              <button className="close-button" onClick={onClose}>
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+// Icon components
+const SaveIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+    <polyline points="17,21 17,13 7,13 7,21"/>
+    <polyline points="7,3 7,8 15,8"/>
+  </svg>
+);
+
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <polyline points="20,6 9,17 4,12"/>
+  </svg>
+);
 
 export default DisplayTransactions;

@@ -26,6 +26,7 @@ const Submit = () => {
   // Popup state
   const [showResultsPopup, setShowResultsPopup] = useState(false);
   const [categorizedData, setCategorizedData] = useState(null);
+  const [fullSubmissionData, setFullSubmissionData] = useState(null);
   
   // Dynamic loading messages
   const [loadingMessage, setLoadingMessage] = useState('Processing...');
@@ -232,6 +233,9 @@ const Submit = () => {
 
       setUploadStatus('Processing complete!');
 
+      // Store full submission data for saving
+      setFullSubmissionData(response);
+
       // Show popup with categorized data
       let categorizedDataToShow = null;
       
@@ -271,6 +275,7 @@ const Submit = () => {
   const handleClosePopup = () => {
     setShowResultsPopup(false);
     setCategorizedData(null);
+    setFullSubmissionData(null);
     // Reset form for next upload
     setUploadedFile(null);
     setValidationResult(null);
@@ -585,6 +590,7 @@ const Submit = () => {
       {showResultsPopup && categorizedData && (
         <DisplayTransactions 
           categorizedData={categorizedData}
+          fullSubmissionData={fullSubmissionData}
           isOpen={showResultsPopup}
           onClose={handleClosePopup}
         />

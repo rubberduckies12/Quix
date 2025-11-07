@@ -1,64 +1,79 @@
--- Database: Quix MTD System
--- Simple schema for MVP
+-- Quix MTD Database Schema
+-- PostgreSQL Database for Making Tax Digital Platform
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Drop tables if they exist (for clean setup)
+DROP TABLE IF EXISTS totals CASCADE;
+DROP TABLE IF EXISTS uploads CASCADE;
+DROP TABLE IF EXISTS accounts CASCADE;
 
--- Accounts table - basic user info
+-- Create accounts table
 CREATE TABLE accounts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    account_id SERIAL PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    ni_number_hash VARCHAR(255), -- Optional, for future HMRC integration
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Uploads table - file uploads with type and period
+-- Create uploads table
 CREATE TABLE uploads (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-    original_filename VARCHAR(255) NOT NULL,
-    file_size BIGINT NOT NULL,
-    upload_type VARCHAR(20) CHECK (upload_type IN ('quarterly', 'annual')) NOT NULL,
-    quarter INTEGER CHECK (quarter BETWEEN 1 AND 4), -- NULL for annual uploads
+    upload_id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES accounts(account_id) ON DELETE CASCADE,
+    type VARCHAR(20) NOT NULL CHECK (type IN ('quarterly', 'annual')),
+    quarter VARCHAR(2) CHECK (quarter IN ('q1', 'q2', 'q3', 'q4')), -- Only for quarterly
+    done_on_different_system BOOLEAN DEFAULT FALSE,
     tax_year INTEGER NOT NULL,
-    status VARCHAR(20) DEFAULT 'uploaded',
-    uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    income_total DECIMAL(12,2) DEFAULT 0.00,
+    expense_total DECIMAL(12,2) DEFAULT 0.00,
+    profit_loss DECIMAL(12,2) DEFAULT 0.00,
+    status VARCHAR(20) DEFAULT 'uploaded' CHECK (status IN ('uploaded', 'submitted_to_hmrc', 'hmrc_accepted', 'hmrc_rejected')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Transactions table - stores individual transactions as JSON
-CREATE TABLE transactions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    upload_id UUID NOT NULL REFERENCES uploads(id) ON DELETE CASCADE,
-    row_number INTEGER NOT NULL, -- original row number in Excel file
-    transaction_data JSONB NOT NULL, -- complete transaction data
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- Create totals table (breakdown by HMRC categories)
+CREATE TABLE totals (
+    total_id SERIAL PRIMARY KEY,
+    upload_id INTEGER NOT NULL REFERENCES uploads(upload_id) ON DELETE CASCADE,
+    hmrc_category VARCHAR(50) NOT NULL,
+    type VARCHAR(10) NOT NULL CHECK (type IN ('income', 'expense')),
+    amount DECIMAL(12,2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance
+-- Create indexes for better performance
 CREATE INDEX idx_accounts_email ON accounts(email);
-CREATE INDEX idx_uploads_account_id ON uploads(account_id);
-CREATE INDEX idx_uploads_type_year ON uploads(upload_type, tax_year);
-CREATE INDEX idx_transactions_upload_id ON transactions(upload_id);
-CREATE INDEX idx_transactions_data ON transactions USING GIN (transaction_data);
+CREATE INDEX idx_uploads_user_id ON uploads(user_id);
+CREATE INDEX idx_uploads_tax_year ON uploads(tax_year);
+CREATE INDEX idx_uploads_type_quarter ON uploads(type, quarter);
+CREATE INDEX idx_totals_upload_id ON totals(upload_id);
+CREATE INDEX idx_totals_category ON totals(hmrc_category);
 
--- Updated_at trigger function
+-- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = NOW();
+    NEW.updated_at = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
 $$ language 'plpgsql';
 
--- Apply trigger to accounts table
-CREATE TRIGGER update_accounts_updated_at 
-    BEFORE UPDATE ON accounts
+-- Create triggers for updated_at
+CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON accounts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Comments
-COMMENT ON TABLE accounts IS 'User accounts with basic information';
-COMMENT ON TABLE uploads IS 'File uploads with quarterly/annual type and period info';
-COMMENT ON TABLE transactions IS 'Individual transactions stored as JSON from uploaded files';
+CREATE TRIGGER update_uploads_updated_at BEFORE UPDATE ON uploads
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Add constraints
+ALTER TABLE uploads ADD CONSTRAINT check_quarterly_has_quarter
+    CHECK (type != 'quarterly' OR quarter IS NOT NULL);
+
+ALTER TABLE uploads ADD CONSTRAINT check_annual_no_quarter
+    CHECK (type != 'annual' OR quarter IS NULL);
+
+
+
