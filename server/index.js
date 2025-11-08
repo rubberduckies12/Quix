@@ -11,6 +11,7 @@ const { testConnection } = require('./src/database/utilities/dbconnect');
 // Import routes
 const filesRoutes = require('./src/routes/files');
 const submissionsRoutes = require('./src/routes/submissions');
+const authRoutes = require('./src/routes/auth');
 
 // Create Express app
 const app = express();
@@ -46,6 +47,7 @@ app.get('/health', (req, res) => {
 // API routes
 app.use('/api/files', filesRoutes);
 app.use('/api/submissions', submissionsRoutes);
+app.use('/api/auth', authRoutes);
 
 // Default route
 app.get('/', (req, res) => {
