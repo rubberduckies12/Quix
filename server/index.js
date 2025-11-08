@@ -5,6 +5,12 @@ const compression = require('compression');
 const morgan = require('morgan');
 require('dotenv').config();
 
+// Debug: Check environment variables
+console.log('🔍 Environment variables loaded:');
+console.log('OPEN_AI_KEY exists:', !!process.env.OPEN_AI_KEY);
+console.log('OPEN_AI_KEY starts with sk-:', process.env.OPEN_AI_KEY?.startsWith('sk-'));
+console.log('OPEN_AI_KEY length:', process.env.OPEN_AI_KEY?.length);
+
 // Import database connection
 const { testConnection } = require('./src/database/utilities/dbconnect');
 

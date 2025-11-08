@@ -6,8 +6,8 @@ const { AppError } = require('./errors.util');
  */
 class CategorizationUtil {
   constructor() {
-    // Direct OpenAI configuration
-    this.openaiApiKey = process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY;
+    // Direct OpenAI configuration 
+    this.openaiApiKey = process.env.OPEN_AI_KEY || process.env.OPENAI_API_KEY;
     this.openaiModel = process.env.OPENAI_MODEL || 'gpt-4';
     this.openaiBaseUrl = 'https://api.openai.com/v1';
     
