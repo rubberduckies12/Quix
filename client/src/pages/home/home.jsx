@@ -391,6 +391,21 @@ const Home = () => {
             </div>
           </div>
         </div>
+
+        {/* Footer Link */}
+        <div className="footer-link">
+          <p>
+            Love QuixMTD? Check out{' '}
+            <a 
+              href="https://www.mypropertypal.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="property-pal-link"
+            >
+              MyPropertyPal
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );

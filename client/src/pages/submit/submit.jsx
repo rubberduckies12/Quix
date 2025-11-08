@@ -283,7 +283,7 @@ const Submit = () => {
   };
 
   const handleBackToHome = () => {
-    navigate('/');
+    navigate('/home');
   };
 
   // Icon components (keeping existing ones)

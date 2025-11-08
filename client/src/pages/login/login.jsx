@@ -104,7 +104,7 @@ const Login = () => {
       <div className="login-card">
         {/* Header */}
         <div className="login-header">
-          <Link to="/" className="back-link">
+          <Link to="/home" className="back-link">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -243,21 +243,6 @@ const Login = () => {
             )}
           </button>
         </form>
-
-        {/* Divider */}
-        <div className="divider">
-          <span>or</span>
-        </div>
-
-        {/* Social Login (Future Feature) */}
-        <div className="social-login">
-          <button type="button" className="social-btn" disabled>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M18 10c0-4.4-3.6-8-8-8s-8 3.6-8 3.6 3.6 8 8 8 8-3.6 8-8z" fill="currentColor"/>
-            </svg>
-            Continue with Google
-          </button>
-        </div>
 
         {/* Footer */}
         <div className="login-footer">
