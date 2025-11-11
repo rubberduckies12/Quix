@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getMTDSubmissions, getUserSubmissions, deleteSubmission } from './home.js';
+import { getMTDSubmissions, getUserSubmissions, deleteSubmission, getSubmissionDetails } from './home.js';
 import './home.css';
 
 const Home = () => {
@@ -81,6 +81,32 @@ const Home = () => {
 
   const handleDropdownAction = async (action, submission) => {
     console.log(`${action} clicked for ${submission.period}`);
+    
+    // Handle view action
+    if (action === 'view') {
+      if (!submission.uploadId) {
+        setError('No submission data available to view');
+        return;
+      }
+      
+      try {
+        setLoading(true);
+        const details = await getSubmissionDetails(submission.uploadId);
+        
+        // Navigate to display transactions page with the submission data
+        navigate('/display-transactions', { 
+          state: { 
+            submissionData: details,
+            fromHome: true 
+          } 
+        });
+      } catch (err) {
+        console.error('Failed to fetch submission details:', err);
+        setError(`Failed to load submission details: ${err.message}`);
+        setLoading(false);
+      }
+      return;
+    }
     
     // Handle delete action
     if (action === 'delete') {
@@ -255,10 +281,6 @@ const Home = () => {
   return (
     <div className="home-container">
       <div className="home-content">
-        <div className="welcome-message">
-          <h2>Welcome, User</h2>
-        </div>
-        
         <div className="home-header">
           <button onClick={refreshData} className="refresh-button">
             <RefreshIcon />

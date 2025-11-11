@@ -1,14 +1,190 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import submitApiService from '../submit/submit.js';
 import './displayTransactions.css';
 
 const DisplayTransactions = ({ categorizedData, isOpen, onClose, fullSubmissionData }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [isSaved, setIsSaved] = useState(false);
-  console.log('DisplayTransactions received props:', { categorizedData, isOpen });
+  
+  // Check if we're in standalone page mode (from home page) or modal mode (from submit page)
+  const isStandalonePage = location.state?.fromHome;
+  const standaloneData = location.state?.submissionData;
+  
+  // Use either prop data (modal mode) or location state data (standalone page)
+  const dataToDisplay = isStandalonePage ? standaloneData?.totals : categorizedData;
+  const submissionInfo = isStandalonePage ? standaloneData?.submission : null;
+  
+  console.log('DisplayTransactions mode:', isStandalonePage ? 'Standalone Page' : 'Modal');
+  console.log('DisplayTransactions data:', dataToDisplay);
 
+  // Helper functions defined first
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP'
+    }).format(amount);
+  };
+
+  const renderStandalonePage = (data, submissionInfo) => {
+    // Group data by category
+    const categoryMap = {};
+    data.forEach(item => {
+      if (!categoryMap[item.category]) {
+        categoryMap[item.category] = {
+          category: item.category,
+          type: item.type,
+          totalAmount: 0
+        };
+      }
+      categoryMap[item.category].totalAmount += item.totalAmount;
+    });
+
+    const frontendSummary = Object.values(categoryMap).map(item => ({
+      category: item.category,
+      categoryDescription: item.category.replace(/([A-Z])/g, ' $1').trim(),
+      type: item.type,
+      totalAmount: item.totalAmount
+    }));
+
+    const totalIncome = frontendSummary
+      .filter(item => item.type === 'income')
+      .reduce((sum, item) => sum + item.totalAmount, 0);
+    
+    const totalExpenses = frontendSummary
+      .filter(item => item.type === 'expense')
+      .reduce((sum, item) => sum + item.totalAmount, 0);
+
+    const isSubmittedToHMRC = submissionInfo?.status === 'submitted_to_hmrc' || 
+                              submissionInfo?.status === 'hmrc_submitted';
+
+    return (
+      <div className="standalone-modal-overlay">
+        <div className="standalone-modal-wrapper">
+          <div className="modal-content">
+            <div className="modal-header">
+              <div>
+                <h3>HMRC Categorization Results</h3>
+                {submissionInfo && (
+                  <div className="submission-metadata">
+                    <span className="metadata-item">
+                      {submissionInfo.type === 'quarterly' 
+                        ? `${submissionInfo.quarter?.toUpperCase()} ${submissionInfo.tax_year}` 
+                        : `Annual ${submissionInfo.tax_year}`}
+                    </span>
+                    <span className={`metadata-item hmrc-status ${isSubmittedToHMRC ? 'submitted' : 'not-submitted'}`}>
+                      {isSubmittedToHMRC 
+                        ? '✓ Submitted to HMRC' 
+                        : '⚠ Not yet submitted to HMRC'}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <button className="close-btn" onClick={() => navigate('/home')}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              <table className="results-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Type</th>
+                    <th>Code</th>
+                    <th>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {frontendSummary.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.categoryDescription}</td>
+                      <td className={`type-${item.type}`}>
+                        {item.type === 'income' ? 'Income' : 'Expense'}
+                      </td>
+                      <td>{item.category}</td>
+                      <td className="amount">{formatCurrency(item.totalAmount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {/* Summary Totals */}
+              <div className="summary-totals">
+                <div className="total-row income">
+                  <span>Total Income:</span>
+                  <span>{formatCurrency(totalIncome)}</span>
+                </div>
+                <div className="total-row expense">
+                  <span>Total Expenses:</span>
+                  <span>{formatCurrency(totalExpenses)}</span>
+                </div>
+                <div className="total-row profit">
+                  <span>Net Profit:</span>
+                  <span>{formatCurrency(totalIncome - totalExpenses)}</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="modal-actions">
+                <div className="button-group">
+                  <button className="close-button" onClick={() => navigate('/home')}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // For standalone page mode, always show content
+  if (isStandalonePage) {
+    if (!dataToDisplay || !Array.isArray(dataToDisplay) || dataToDisplay.length === 0) {
+      return (
+        <div className="standalone-modal-overlay">
+          <div className="standalone-modal-wrapper">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h3>Error</h3>
+                <button className="close-btn" onClick={() => navigate('/home')}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="error-text">No submission data available</div>
+                <div className="modal-actions">
+                  <button className="close-button" onClick={() => navigate('/home')}>
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Transform backend totals data to match frontend format
+    const transformedData = dataToDisplay.reduce((acc, total) => {
+      const existing = acc.find(item => item.category === total.hmrc_category);
+      if (existing) {
+        existing.totalAmount += parseFloat(total.amount);
+      } else {
+        acc.push({
+          category: total.hmrc_category,
+          type: total.type,
+          totalAmount: parseFloat(total.amount)
+        });
+      }
+      return acc;
+    }, []);
+
+    return renderStandalonePage(transformedData, submissionInfo);
+  }
+
+  // Original modal mode logic
   if (!isOpen) {
     console.log('Popup not open, returning null');
     return null;
@@ -46,13 +222,6 @@ const DisplayTransactions = ({ categorizedData, isOpen, onClose, fullSubmissionD
       </div>
     );
   }
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount);
-  };
 
   const handleSaveSubmission = async () => {
     if (!fullSubmissionData) {

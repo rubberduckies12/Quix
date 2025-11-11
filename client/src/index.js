@@ -6,6 +6,7 @@ import Home from './pages/home/home.jsx';
 import Submit from './pages/submit/submit.jsx';
 import Register from './pages/register/register.jsx';
 import Login from './pages/login/login.jsx';
+import DisplayTransactions from './pages/displayTransactions/displayTransactions.jsx';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -16,6 +17,7 @@ root.render(
         <Route path="/home" element={<Home />} />
         <Route path="/submit" element={<Submit />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/display-transactions" element={<DisplayTransactions />} />
       </Routes>
     </Router>
   </React.StrictMode>

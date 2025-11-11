@@ -756,3 +756,69 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Standalone Page Styles - Modal Overlay */
+.standalone-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 2rem;
+}
+
+.standalone-modal-wrapper {
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Submission Metadata Styling */
+.submission-metadata {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.metadata-item {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.metadata-item.hmrc-status {
+  font-weight: 600;
+}
+
+.metadata-item.hmrc-status.submitted {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.metadata-item.hmrc-status.not-submitted {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+@media (max-width: 768px) {
+  .standalone-modal-overlay {
+    padding: 1rem;
+  }
+  
+  .standalone-modal-wrapper {
+    max-height: 95vh;
+  }
+}

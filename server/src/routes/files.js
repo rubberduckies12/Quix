@@ -76,6 +76,40 @@ router.post('/process',
 
       const { submissionType, businessType, quarter, submissionOptions } = req.body;
       const file = req.file;
+      const userId = 1; // TODO: Get from auth
+
+      // Check for duplicate submissions before processing
+      const SubmissionModel = require('../models/submission.models');
+      const currentYear = new Date().getFullYear();
+      const existingSubmissions = await SubmissionModel.getUserSubmissions(userId);
+      
+      // Normalize quarter format
+      let normalizedQuarter = quarter;
+      if (quarter && !quarter.startsWith('q')) {
+        normalizedQuarter = `q${quarter}`;
+      }
+      
+      const duplicateExists = existingSubmissions.some(existing => {
+        if (submissionType === 'quarterly') {
+          return existing.type === 'quarterly' && 
+                 existing.quarter === normalizedQuarter?.toLowerCase() && 
+                 existing.tax_year === currentYear;
+        } else if (submissionType === 'yearly' || submissionType === 'annual') {
+          return existing.type === 'annual' && existing.tax_year === currentYear;
+        }
+        return false;
+      });
+
+      if (duplicateExists) {
+        const periodName = submissionType === 'quarterly' 
+          ? normalizedQuarter?.toUpperCase() 
+          : 'Annual';
+        return res.status(409).json({
+          success: false,
+          error: 'Duplicate submission',
+          message: `A submission for ${periodName} ${currentYear} already exists. Please delete the existing submission first if you want to re-upload.`
+        });
+      }
 
       // Parse submission options if provided
       let parsedSubmissionOptions = {};
@@ -109,9 +143,8 @@ router.post('/process',
         });
       }
 
-      // FIX: Ensure quarter format is correct
-      let normalizedQuarter = quarter;
-      if (quarter && !quarter.startsWith('q')) {
+      // Quarter is already normalized above, just verify format
+      if (quarter && !normalizedQuarter.startsWith('q')) {
         normalizedQuarter = `q${quarter}`; // Convert "3" to "q3"
       }
       

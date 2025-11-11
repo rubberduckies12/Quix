@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import submitApiService from './submit.js';
+import { getUserSubmissions } from '../home/home.js';
 import DisplayTransactions from '../displayTransactions/displayTransactions.jsx';
 import './submit.css';
 
@@ -17,6 +18,15 @@ const Submit = () => {
   const [validationResult, setValidationResult] = useState(null);
   const [businessType, setBusinessType] = useState('sole_trader');
   
+  // Track uploaded periods to prevent duplicates
+  const [uploadedPeriods, setUploadedPeriods] = useState({
+    q1: false,
+    q2: false,
+    q3: false,
+    q4: false,
+    annual: false
+  });
+  
   // Submission options for Q2+ quarterly submissions
   const [submissionOptions, setSubmissionOptions] = useState({
     spreadsheetType: '', // 'different_per_quarter', 'same_cumulative', 'same_separated'
@@ -32,7 +42,7 @@ const Submit = () => {
   const [loadingMessage, setLoadingMessage] = useState('Processing...');
   const [loadingInterval, setLoadingInterval] = useState(null);
 
-  // Load upload configuration on component mount
+  // Load upload configuration and check for existing uploads on component mount
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -44,7 +54,34 @@ const Submit = () => {
       }
     };
 
+    const loadUploadedPeriods = async () => {
+      try {
+        const submissions = await getUserSubmissions(1); // userId = 1 for now
+        const periods = {
+          q1: false,
+          q2: false,
+          q3: false,
+          q4: false,
+          annual: false
+        };
+        
+        submissions.forEach(submission => {
+          if (submission.type === 'quarterly' && submission.quarter) {
+            periods[submission.quarter] = true;
+          } else if (submission.type === 'annual') {
+            periods.annual = true;
+          }
+        });
+        
+        setUploadedPeriods(periods);
+        console.log('Uploaded periods:', periods);
+      } catch (error) {
+        console.error('Failed to load uploaded periods:', error);
+      }
+    };
+
     loadConfig();
+    loadUploadedPeriods();
     
     // Cleanup interval on unmount
     return () => {
@@ -189,6 +226,17 @@ const Submit = () => {
 
     if (submissionType === 'quarterly' && !quarterPeriod) {
       alert('Please select quarter period');
+      return;
+    }
+
+    // Check if period has already been uploaded
+    if (submissionType === 'quarterly' && uploadedPeriods[quarterPeriod]) {
+      alert(`${quarterPeriod.toUpperCase()} has already been uploaded. Please delete the existing submission first if you want to re-upload.`);
+      return;
+    }
+
+    if (submissionType === 'yearly' && uploadedPeriods.annual) {
+      alert('Annual submission has already been uploaded. Please delete the existing submission first if you want to re-upload.');
       return;
     }
 
@@ -371,7 +419,9 @@ const Submit = () => {
               >
                 <option value="">Select submission type</option>
                 <option value="quarterly">Quarterly</option>
-                <option value="yearly">Annual</option>
+                <option value="yearly" disabled={uploadedPeriods.annual}>
+                  Annual {uploadedPeriods.annual ? '(Already Uploaded)' : ''}
+                </option>
               </select>
             </div>
           )}
@@ -389,10 +439,18 @@ const Submit = () => {
                 onChange={handleQuarterChange}
               >
                 <option value="">Select quarter</option>
-                <option value="q1">Q1 (Jan - Mar)</option>
-                <option value="q2">Q2 (Apr - Jun)</option>
-                <option value="q3">Q3 (Jul - Sep)</option>
-                <option value="q4">Q4 (Oct - Dec)</option>
+                <option value="q1" disabled={uploadedPeriods.q1}>
+                  Q1 (Jan - Mar) {uploadedPeriods.q1 ? '(Already Uploaded)' : ''}
+                </option>
+                <option value="q2" disabled={uploadedPeriods.q2}>
+                  Q2 (Apr - Jun) {uploadedPeriods.q2 ? '(Already Uploaded)' : ''}
+                </option>
+                <option value="q3" disabled={uploadedPeriods.q3}>
+                  Q3 (Jul - Sep) {uploadedPeriods.q3 ? '(Already Uploaded)' : ''}
+                </option>
+                <option value="q4" disabled={uploadedPeriods.q4}>
+                  Q4 (Oct - Dec) {uploadedPeriods.q4 ? '(Already Uploaded)' : ''}
+                </option>
               </select>
             </div>
           )}

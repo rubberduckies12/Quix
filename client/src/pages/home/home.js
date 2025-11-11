@@ -182,6 +182,28 @@ export const deleteSubmission = async (uploadId, userId = 1) => {
 };
 
 /**
+ * Get submission details with totals breakdown
+ * @param {number} uploadId - Upload ID
+ * @returns {Promise<Object>} Detailed submission data
+ */
+export const getSubmissionDetails = async (uploadId) => {
+  const response = await fetch(`${API_BASE_URL}/api/submissions/${uploadId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch submission details: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.success ? data.data : null;
+};
+
+/**
  * Get individual submission status
  * @param {string} period - Period identifier (Q1, Q2, Q3, Q4, Y)
  * @param {number} userId - User ID

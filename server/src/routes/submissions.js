@@ -24,6 +24,31 @@ router.post('/save', async (req, res) => {
       });
     }
 
+    // Check for duplicate submissions
+    const submissionType = submissionData.metadata?.submissionType || submissionData.submissionType || 'annual';
+    const quarter = (submissionData.metadata?.quarter || submissionData.quarter)?.toLowerCase() || null;
+    const taxYear = submissionData.metadata?.taxYear || submissionData.taxYear || new Date().getFullYear();
+
+    // Check if a submission already exists for this period
+    const existingSubmissions = await SubmissionModel.getUserSubmissions(userId);
+    const duplicateExists = existingSubmissions.some(existing => {
+      if (submissionType === 'quarterly') {
+        return existing.type === 'quarterly' && 
+               existing.quarter === quarter && 
+               existing.tax_year === taxYear;
+      } else {
+        return existing.type === 'annual' && existing.tax_year === taxYear;
+      }
+    });
+
+    if (duplicateExists) {
+      const periodName = submissionType === 'quarterly' ? quarter.toUpperCase() : 'Annual';
+      return res.status(409).json({
+        success: false,
+        error: `A submission for ${periodName} ${taxYear} already exists. Please delete the existing submission first if you want to re-upload.`
+      });
+    }
+
     // Save to database
     const result = await SubmissionModel.saveSubmission(submissionData, userId);
 
