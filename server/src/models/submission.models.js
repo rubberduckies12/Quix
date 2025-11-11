@@ -13,19 +13,27 @@ class SubmissionModel {
     try {
       await client.query('BEGIN');
       
-      // Extract data from submission
+      // Extract data from submission - handle both structures:
+      // 1. Structured with metadata object (legacy)
+      // 2. Flat structure with metadata at top level (current)
       const {
         metadata,
         submission,
         processingDetails,
         categorization,
-        categorizedData
+        categorizedData,
+        // Top-level fields (current structure)
+        submissionType: topLevelSubmissionType,
+        quarter: topLevelQuarter,
+        businessType: topLevelBusinessType,
+        taxYear: topLevelTaxYear
       } = submissionData;
       
-      // Extract metadata fields
-      const submissionType = metadata?.submissionType || 'annual'; // Default to annual if not specified
-      const quarter = metadata?.quarter?.toLowerCase() || null;
-      const businessType = metadata?.businessType || 'sole_trader';
+      // Extract metadata fields - prioritize nested metadata, fallback to top-level
+      const submissionType = metadata?.submissionType || topLevelSubmissionType || 'annual';
+      const quarter = (metadata?.quarter || topLevelQuarter)?.toLowerCase() || null;
+      const businessType = metadata?.businessType || topLevelBusinessType || 'sole_trader';
+      const taxYear = metadata?.taxYear || topLevelTaxYear || new Date().getFullYear();
       
       // Determine if this is annual or quarterly based on available data
       // If no quarter is provided, treat as annual submission
@@ -36,7 +44,8 @@ class SubmissionModel {
       console.log('📊 Saving submission:', { 
         submissionType, 
         quarter, 
-        businessType, 
+        businessType,
+        taxYear,
         isAnnual, 
         dbType, 
         dbQuarter 
@@ -46,7 +55,6 @@ class SubmissionModel {
       const incomeTotal = submission?.summary?.totalIncome || 0;
       const expenseTotal = submission?.summary?.totalExpenses || 0;
       const profitLoss = submission?.summary?.netProfitLoss || (incomeTotal - expenseTotal);
-      const taxYear = new Date().getFullYear();
 
       // Insert upload record
       const uploadQuery = `
@@ -217,6 +225,154 @@ class SubmissionModel {
     } catch (error) {
       console.error('❌ Error updating submission status:', error);
       throw new Error(`Failed to update submission status: ${error.message}`);
+    }
+  }
+
+  /**
+   * Delete a submission (only if not submitted to HMRC)
+   * @param {number} uploadId - Upload ID
+   * @param {number} userId - User ID (for verification)
+   * @returns {Object} Deletion result
+   */
+  static async deleteSubmission(uploadId, userId) {
+    try {
+      // First check if submission exists and belongs to user
+      const checkQuery = `
+        SELECT upload_id, status, user_id, type, quarter, tax_year
+        FROM uploads 
+        WHERE upload_id = $1 AND user_id = $2
+      `;
+      
+      const checkResult = await pool.query(checkQuery, [uploadId, userId]);
+      
+      if (checkResult.rows.length === 0) {
+        throw new Error('Submission not found or does not belong to user');
+      }
+
+      const submission = checkResult.rows[0];
+
+      // Prevent deletion if already submitted to HMRC
+      if (submission.status === 'submitted_to_hmrc' || 
+          submission.status === 'hmrc_accepted' || 
+          submission.status === 'hmrc_rejected') {
+        throw new Error('Cannot delete submissions that have been submitted to HMRC');
+      }
+
+      // Delete the submission (CASCADE will handle related records in totals and submission_logs)
+      const deleteQuery = `
+        DELETE FROM uploads 
+        WHERE upload_id = $1 AND user_id = $2
+        RETURNING upload_id, type, quarter, tax_year
+      `;
+
+      const result = await pool.query(deleteQuery, [uploadId, userId]);
+      
+      console.log(`🗑️ Deleted submission: upload_id=${uploadId}, type=${submission.type}, quarter=${submission.quarter}`);
+
+      return {
+        success: true,
+        deletedSubmission: result.rows[0],
+        message: 'Submission deleted successfully'
+      };
+    } catch (error) {
+      console.error('❌ Error deleting submission:', error);
+      throw new Error(`Failed to delete submission: ${error.message}`);
+    }
+  }
+
+  /**
+   * Log a submission event (upload or HMRC submission)
+   * @param {number} userId - User ID
+   * @param {number} uploadId - Upload ID
+   * @param {number} taxYear - Tax year
+   * @param {string} period - Period (q1, q2, q3, q4, annual)
+   * @param {string} action - Action ('uploaded' or 'submitted_to_hmrc')
+   * @param {string|null} hmrcResponse - HMRC response (optional)
+   * @param {string|null} hmrcSubmissionId - HMRC submission ID (optional)
+   * @returns {Object} Created log entry
+   */
+  static async logSubmission(userId, uploadId, taxYear, period, action, hmrcResponse = null, hmrcSubmissionId = null) {
+    try {
+      const query = `
+        INSERT INTO submission_logs (
+          user_id, upload_id, tax_year, period, action, hmrc_response, hmrc_submission_id
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7) 
+        RETURNING *
+      `;
+      
+      const params = [
+        userId,
+        uploadId,
+        taxYear,
+        period,
+        action,
+        hmrcResponse,
+        hmrcSubmissionId
+      ];
+
+      const result = await pool.query(query, params);
+      
+      console.log(`📝 Logged ${action} event for upload_id: ${uploadId}`);
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error('❌ Error logging submission:', error);
+      throw new Error(`Failed to log submission: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get submission logs for a user
+   * @param {number} userId - User ID
+   * @param {Object} filters - Optional filters (period, action, taxYear)
+   * @returns {Array} List of submission logs
+   */
+  static async getSubmissionLogs(userId, filters = {}) {
+    try {
+      let query = `
+        SELECT 
+          sl.*,
+          u.type as upload_type,
+          u.quarter as upload_quarter,
+          u.income_total,
+          u.expense_total,
+          u.profit_loss,
+          u.status as upload_status
+        FROM submission_logs sl
+        LEFT JOIN uploads u ON sl.upload_id = u.upload_id
+        WHERE sl.user_id = $1
+      `;
+      
+      const params = [userId];
+      let paramIndex = 2;
+
+      // Add filters
+      if (filters.action) {
+        query += ` AND sl.action = $${paramIndex}`;
+        params.push(filters.action);
+        paramIndex++;
+      }
+
+      if (filters.period) {
+        query += ` AND sl.period = $${paramIndex}`;
+        params.push(filters.period);
+        paramIndex++;
+      }
+
+      if (filters.taxYear) {
+        query += ` AND sl.tax_year = $${paramIndex}`;
+        params.push(filters.taxYear);
+        paramIndex++;
+      }
+
+      query += ` ORDER BY sl.created_at DESC`;
+
+      const result = await pool.query(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error('❌ Error fetching submission logs:', error);
+      throw new Error(`Failed to fetch submission logs: ${error.message}`);
     }
   }
 }

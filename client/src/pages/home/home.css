@@ -218,7 +218,7 @@
   background: white;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
-  overflow: hidden;
+  overflow: visible;
   margin-bottom: 3rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -331,6 +331,8 @@
 /* Actions Column - Dropdown */
 .actions-cell {
   width: 35%;
+  overflow: visible;
+  position: relative;
 }
 
 .action-dropdown {
@@ -365,13 +367,21 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  z-index: 1000;
   min-width: 150px;
   margin-top: 0.25rem;
 }
 
 .dropdown-content.hidden {
   display: none;
+}
+
+/* For rows near the bottom, open dropdown upwards */
+tr:nth-last-child(-n+2) .dropdown-content {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
 }
 
 .dropdown-item {
@@ -403,6 +413,17 @@
 
 .dropdown-item + .dropdown-item {
   border-top: 1px solid #f3f4f6;
+}
+
+.dropdown-item.delete-item {
+  color: #dc2626;
+  border-top: 1px solid #fee2e2;
+  margin-top: 0.25rem;
+}
+
+.dropdown-item.delete-item:hover {
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 /* Chevron Icon */

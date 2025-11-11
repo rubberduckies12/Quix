@@ -1,17 +1,199 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 /**
- * Get MTD submissions data
+ * Get MTD submissions data from backend
+ * @param {number} userId - User ID
  * @returns {Promise<Array>} Array of submission objects
  */
-export const getMTDSubmissions = async () => {
+export const getMTDSubmissions = async (userId = 1) => {
+  const response = await fetch(`${API_BASE_URL}/api/submissions/list?userId=${userId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch submissions: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  
+  if (data.success) {
+    // Transform backend data to match frontend format
+    return transformSubmissionsData(data.data);
+  } else {
+    throw new Error(data.message || 'Failed to fetch submissions');
+  }
+};
+
+/**
+ * Transform backend submission data to frontend format
+ * @param {Array} backendData - Raw data from backend
+ * @returns {Array} Formatted submission objects
+ */
+const transformSubmissionsData = (backendData) => {
+  const deadlines = getTaxYearDeadlines();
+  const currentYear = new Date().getFullYear();
+  
+  // Create a map of uploaded submissions
+  const uploadedMap = {};
+  backendData.forEach(submission => {
+    const period = submission.type === 'quarterly' ? submission.quarter : 'annual';
+    uploadedMap[period] = {
+      id: `${period}-${submission.tax_year}`,
+      period: period === 'annual' ? 'Y' : period.toUpperCase(),
+      status: mapStatus(submission.status),
+      uploadedAt: submission.created_at,
+      uploadId: submission.upload_id,
+      income: submission.income_total,
+      expenses: submission.expense_total,
+      profit: submission.profit_loss
+    };
+  });
+  
+  // Create full list with all periods
+  const allPeriods = ['q1', 'q2', 'q3', 'q4', 'annual'];
+  
+  return allPeriods.map(period => {
+    const uploaded = uploadedMap[period];
+    const periodKey = period === 'annual' ? 'Annual' : period.toUpperCase();
+    const deadlineInfo = deadlines[periodKey];
+    
+    if (uploaded) {
+      return {
+        id: uploaded.id,
+        period: uploaded.period,
+        description: deadlineInfo.period,
+        dueDate: deadlineInfo.deadline.toISOString(),
+        status: uploaded.status,
+        submittedDate: uploaded.uploadedAt,
+        uploadId: uploaded.uploadId,
+        businessType: 'sole_trader'
+      };
+    } else {
+      return {
+        id: `${period}-${currentYear}`,
+        period: period === 'annual' ? 'Y' : period.toUpperCase(),
+        description: deadlineInfo.period,
+        dueDate: deadlineInfo.deadline.toISOString(),
+        status: 'Not Uploaded',
+        submittedDate: null,
+        uploadId: null,
+        businessType: 'sole_trader'
+      };
+    }
+  });
+};
+
+/**
+ * Map backend status to frontend status
+ * @param {string} backendStatus - Status from backend
+ * @returns {string} Frontend status
+ */
+const mapStatus = (backendStatus) => {
+  const statusMap = {
+    'uploaded': 'Uploaded',
+    'submitted_to_hmrc': 'Pending',
+    'hmrc_accepted': 'Uploaded',
+    'hmrc_rejected': 'Not Uploaded'
+  };
+  
+  return statusMap[backendStatus] || 'Not Uploaded';
+};
+
+/**
+ * Get all user submissions
+ * @param {number} userId - User ID
+ * @returns {Promise<Array>} Array of submissions
+ */
+export const getUserSubmissions = async (userId = 1) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/submissions/status`, {
+    const response = await fetch(`${API_BASE_URL}/api/submissions/list?userId=${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${getAuthToken()}`
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.success ? data.data : [];
+  } catch (error) {
+    console.error('Error fetching user submissions:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get submission logs (upload and HMRC submission history)
+ * @param {number} userId - User ID
+ * @returns {Promise<Array>} Array of submission logs
+ */
+export const getSubmissionLogs = async (userId = 1) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/submissions/logs/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.success ? data.data : [];
+  } catch (error) {
+    console.error('Error fetching submission logs:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete a submission (only if not submitted to HMRC)
+ * @param {number} uploadId - Upload ID
+ * @param {number} userId - User ID
+ * @returns {Promise<Object>} Deletion result
+ */
+export const deleteSubmission = async (uploadId, userId = 1) => {
+  const response = await fetch(`${API_BASE_URL}/api/submissions/${uploadId}?userId=${userId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${getAuthToken()}`
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete submission');
+  }
+
+  const data = await response.json();
+  return data;
+};
+
+/**
+ * Get individual submission status
+ * @param {string} period - Period identifier (Q1, Q2, Q3, Q4, Y)
+ * @param {number} userId - User ID
+ * @returns {Promise<Object>} Submission status object
+ */
+export const getSubmissionStatus = async (period, userId = 1) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/submissions/list?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
       },
     });
 
@@ -22,38 +204,18 @@ export const getMTDSubmissions = async () => {
     const data = await response.json();
     
     if (data.success) {
-      return data.submissions;
-    } else {
-      throw new Error(data.message || 'Failed to fetch submissions');
+      // Find the specific period
+      const periodLower = period.toLowerCase();
+      const submission = data.data.find(s => {
+        const submissionPeriod = s.type === 'quarterly' ? s.quarter : 'annual';
+        return submissionPeriod === periodLower || 
+               (periodLower === 'y' && submissionPeriod === 'annual');
+      });
+      
+      return submission || { status: 'Not Uploaded' };
     }
-  } catch (error) {
-    console.error('Error fetching MTD submissions:', error);
     
-    // Return mock data for development
-    return getMockSubmissions();
-  }
-};
-
-/**
- * Get individual submission status
- * @param {string} period - Period identifier (Q1, Q2, Q3, Q4, Y)
- * @returns {Promise<Object>} Submission status object
- */
-export const getSubmissionStatus = async (period) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/submissions/${period}/status`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
+    return { status: 'Not Uploaded' };
   } catch (error) {
     console.error(`Error fetching status for ${period}:`, error);
     throw error;
@@ -127,62 +289,6 @@ export const getTaxYearDeadlines = () => {
 };
 
 /**
- * Mock data for development/fallback
- * @returns {Array} Mock submissions data
- */
-const getMockSubmissions = () => {
-  const deadlines = getTaxYearDeadlines();
-  
-  return [
-    {
-      id: 'q1-2024',
-      period: 'Q1',
-      description: deadlines.Q1.period,
-      dueDate: deadlines.Q1.deadline.toISOString(),
-      status: 'Uploaded',
-      submittedDate: '2024-07-15T10:30:00Z',
-      businessType: 'sole_trader'
-    },
-    {
-      id: 'q2-2024',
-      period: 'Q2', 
-      description: deadlines.Q2.period,
-      dueDate: deadlines.Q2.deadline.toISOString(),
-      status: 'Pending',
-      submittedDate: '2024-10-20T14:22:00Z',
-      businessType: 'sole_trader'
-    },
-    {
-      id: 'q3-2024',
-      period: 'Q3',
-      description: deadlines.Q3.period,
-      dueDate: deadlines.Q3.deadline.toISOString(),
-      status: 'Not Uploaded',
-      submittedDate: null,
-      businessType: 'sole_trader'
-    },
-    {
-      id: 'q4-2024',
-      period: 'Q4',
-      description: deadlines.Q4.period,
-      dueDate: deadlines.Q4.deadline.toISOString(),
-      status: 'Not Uploaded',
-      submittedDate: null,
-      businessType: 'sole_trader'
-    },
-    {
-      id: 'annual-2024',
-      period: 'Y',
-      description: deadlines.Annual.period,
-      dueDate: deadlines.Annual.deadline.toISOString(),
-      status: 'Not Uploaded',
-      submittedDate: null,
-      businessType: 'sole_trader'
-    }
-  ];
-};
-
-/**
  * Calculate days until deadline
  * @param {string} dueDateString - ISO date string
  * @returns {number} Days until deadline (negative if overdue)
@@ -195,10 +301,9 @@ export const getDaysUntilDeadline = (dueDateString) => {
 };
 
 /**
- * Get authentication token (placeholder)
+ * Get authentication token
  * @returns {string|null} Auth token
  */
 const getAuthToken = () => {
-  // This would typically get token from localStorage, sessionStorage, or context
-  return localStorage.getItem('authToken') || null;
+  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || null;
 };

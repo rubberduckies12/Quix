@@ -27,6 +27,43 @@ router.post('/save', async (req, res) => {
     // Save to database
     const result = await SubmissionModel.saveSubmission(submissionData, userId);
 
+    // Log the upload in submission_logs table
+    if (result.uploadId) {
+      // Check both metadata and top-level properties for backwards compatibility
+      const submissionType = submissionData.metadata?.submissionType || submissionData.submissionType || 'annual';
+      const quarter = (submissionData.metadata?.quarter || submissionData.quarter)?.toLowerCase() || null;
+      const taxYear = submissionData.metadata?.taxYear || submissionData.taxYear || new Date().getFullYear();
+      
+      // Determine period for logging
+      const period = submissionType === 'quarterly' && quarter ? quarter : 'annual';
+      
+      console.log('🔍 Logging submission with:', {
+        submissionType,
+        quarter,
+        taxYear,
+        period,
+        uploadId: result.uploadId
+      });
+      
+      await SubmissionModel.logSubmission(
+        userId,
+        result.uploadId,
+        taxYear,
+        period,
+        'uploaded'
+      );
+
+      console.log('✅ Upload logged in submission_logs:', {
+        userId,
+        uploadId: result.uploadId,
+        taxYear,
+        period,
+        action: 'uploaded'
+      });
+    } else {
+      console.warn('⚠️ No uploadId returned from saveSubmission, cannot log');
+    }
+
     res.json({
       success: true,
       data: result,
@@ -98,7 +135,7 @@ router.get('/:uploadId', async (req, res) => {
 router.put('/:uploadId/status', async (req, res) => {
   try {
     const { uploadId } = req.params;
-    const { status } = req.body;
+    const { status, hmrcResponse, hmrcSubmissionId } = req.body;
 
     const validStatuses = ['uploaded', 'submitted_to_hmrc', 'hmrc_accepted', 'hmrc_rejected'];
     
@@ -111,6 +148,37 @@ router.put('/:uploadId/status', async (req, res) => {
 
     const updatedSubmission = await SubmissionModel.updateSubmissionStatus(uploadId, status);
 
+    // If status is submitted_to_hmrc, log it in submission_logs
+    if (status === 'submitted_to_hmrc' && updatedSubmission) {
+      const uploadData = await SubmissionModel.getSubmissionDetails(uploadId);
+
+      if (uploadData && uploadData.submission) {
+        const submission = uploadData.submission;
+        const submissionType = submission.type; // 'quarterly' or 'annual'
+        const quarter = submission.quarter || null;
+        
+        // Determine period for logging
+        const period = submissionType === 'quarterly' && quarter ? quarter : 'annual';
+
+        await SubmissionModel.logSubmission(
+          submission.user_id,
+          uploadId,
+          submission.tax_year,
+          period,
+          'submitted_to_hmrc',
+          hmrcResponse ? JSON.stringify(hmrcResponse) : null,
+          hmrcSubmissionId || null
+        );
+
+        console.log('✅ HMRC submission logged in submission_logs:', {
+          uploadId,
+          taxYear: submission.tax_year,
+          period,
+          hmrcSubmissionId
+        });
+      }
+    }
+
     res.json({
       success: true,
       data: updatedSubmission,
@@ -122,6 +190,68 @@ router.put('/:uploadId/status', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Failed to update status'
+    });
+  }
+});
+
+/**
+ * DELETE /api/submissions/:uploadId
+ * Delete a submission (only if not submitted to HMRC)
+ */
+router.delete('/:uploadId', async (req, res) => {
+  try {
+    const { uploadId } = req.params;
+    const { userId = 1 } = req.query;
+
+    const result = await SubmissionModel.deleteSubmission(parseInt(uploadId), parseInt(userId));
+
+    res.json({
+      success: true,
+      data: result.deletedSubmission,
+      message: result.message
+    });
+
+  } catch (error) {
+    console.error('❌ Delete submission error:', error);
+    
+    // Send appropriate status code based on error
+    const statusCode = error.message.includes('Cannot delete') ? 403 : 
+                       error.message.includes('not found') ? 404 : 500;
+    
+    res.status(statusCode).json({
+      success: false,
+      error: error.message || 'Failed to delete submission'
+    });
+  }
+});
+
+/**
+ * GET /api/submissions/logs/:userId
+ * Get submission logs for a user
+ */
+router.get('/logs/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { action, period, taxYear } = req.query;
+
+    const filters = {};
+    if (action) filters.action = action;
+    if (period) filters.period = period;
+    if (taxYear) filters.taxYear = parseInt(taxYear);
+
+    const logs = await SubmissionModel.getSubmissionLogs(parseInt(userId), filters);
+
+    res.json({
+      success: true,
+      data: logs,
+      count: logs.length
+    });
+
+  } catch (error) {
+    console.error('❌ Get submission logs error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to fetch submission logs'
     });
   }
 });

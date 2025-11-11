@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-//import { getMTDSubmissions, getSubmissionStatus } from './home.js';
+import { getMTDSubmissions, getUserSubmissions, deleteSubmission } from './home.js';
 import './home.css';
 
 const Home = () => {
@@ -11,62 +11,24 @@ const Home = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [openDropdowns, setOpenDropdowns] = useState({});
 
-  // Mock data for styling purposes
-  const getMockSubmissions = () => {
-    const currentYear = new Date().getFullYear();
-    
-    return [
-      {
-        id: 'q1-2024',
-        period: 'Q1',
-        description: 'Apr - Jul',
-        dueDate: new Date(currentYear, 7, 5).toISOString(),
-        status: 'Uploaded',
-        submittedDate: '2024-07-15T10:30:00Z',
-        businessType: 'sole_trader'
-      },
-      {
-        id: 'q2-2024',
-        period: 'Q2', 
-        description: 'Jul - Oct',
-        dueDate: new Date(currentYear, 10, 5).toISOString(),
-        status: 'Pending',
-        submittedDate: '2024-10-20T14:22:00Z',
-        businessType: 'sole_trader'
-      },
-      {
-        id: 'q3-2024',
-        period: 'Q3',
-        description: 'Oct - Jan',
-        dueDate: new Date(currentYear + 1, 1, 5).toISOString(),
-        status: 'Not Uploaded',
-        submittedDate: null,
-        businessType: 'sole_trader'
-      },
-      {
-        id: 'q4-2024',
-        period: 'Q4',
-        description: 'Jan - Apr',
-        dueDate: new Date(currentYear + 1, 4, 5).toISOString(),
-        status: 'Not Uploaded',
-        submittedDate: null,
-        businessType: 'sole_trader'
-      },
-      {
-        id: 'annual-2024',
-        period: 'Y',
-        description: 'Full Year',
-        dueDate: new Date(currentYear + 2, 0, 31).toISOString(),
-        status: 'Not Uploaded',
-        submittedDate: null,
-        businessType: 'sole_trader'
-      }
-    ];
-  };
-
   useEffect(() => {
-    // Load mock data immediately for styling
-    setSubmissions(getMockSubmissions());
+    // Load real data from backend
+    const loadSubmissions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getMTDSubmissions();
+        setSubmissions(data);
+      } catch (err) {
+        console.error('Failed to load submissions:', err);
+        setError(`Failed to load submissions: ${err.message}`);
+        setSubmissions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSubmissions();
 
     // Update current date every minute to keep status colors accurate
     const dateInterval = setInterval(() => {
@@ -117,19 +79,49 @@ const Home = () => {
     }));
   };
 
-  const handleDropdownAction = (action, period) => {
-    console.log(`${action} clicked for ${period}`);
+  const handleDropdownAction = async (action, submission) => {
+    console.log(`${action} clicked for ${submission.period}`);
+    
+    // Handle delete action
+    if (action === 'delete') {
+      if (window.confirm(`Are you sure you want to delete the ${submission.period} submission? This cannot be undone.`)) {
+        try {
+          setLoading(true);
+          await deleteSubmission(submission.uploadId, 1);
+          
+          // Refresh the submissions list
+          const data = await getMTDSubmissions();
+          setSubmissions(data);
+          
+          console.log('✅ Submission deleted successfully');
+        } catch (err) {
+          console.error('Failed to delete submission:', err);
+          setError(`Failed to delete submission: ${err.message}`);
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+    
     // Close dropdown after action
     setOpenDropdowns(prev => ({
       ...prev,
-      [period]: false
+      [submission.id]: false
     }));
   };
 
   const refreshData = async () => {
-    console.log('Refresh clicked - backend not connected yet');
-    // For now, just reload mock data
-    setSubmissions(getMockSubmissions());
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getMTDSubmissions();
+      setSubmissions(data);
+    } catch (err) {
+      console.error('Failed to refresh submissions:', err);
+      setError('Failed to refresh submissions.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSettings = () => {
@@ -209,6 +201,15 @@ const Home = () => {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
       <polyline points="7,10 12,15 17,10"/>
       <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  );
+
+  const DeleteIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 6h18"/>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      <line x1="10" y1="11" x2="10" y2="17"/>
+      <line x1="14" y1="11" x2="14" y2="17"/>
     </svg>
   );
 
@@ -336,25 +337,34 @@ const Home = () => {
                       <div className={`dropdown-content ${openDropdowns[submission.id] ? '' : 'hidden'}`}>
                         <button 
                           className="dropdown-item"
-                          onClick={() => handleDropdownAction('resubmit', submission.period)}
+                          onClick={() => handleDropdownAction('resubmit', submission)}
                         >
                           <ResubmitIcon />
                           <span>Resubmit</span>
                         </button>
                         <button 
                           className="dropdown-item"
-                          onClick={() => handleDropdownAction('view', submission.period)}
+                          onClick={() => handleDropdownAction('view', submission)}
                         >
                           <ViewIcon />
                           <span>View</span>
                         </button>
                         <button 
                           className="dropdown-item"
-                          onClick={() => handleDropdownAction('download', submission.period)}
+                          onClick={() => handleDropdownAction('download', submission)}
                         >
                           <DownloadIcon />
                           <span>Download</span>
                         </button>
+                        {(submission.status === 'Uploaded' || submission.status === 'Not Uploaded') && submission.uploadId && (
+                          <button 
+                            className="dropdown-item delete-item"
+                            onClick={() => handleDropdownAction('delete', submission)}
+                          >
+                            <DeleteIcon />
+                            <span>Delete</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </td>
