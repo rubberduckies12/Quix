@@ -68,7 +68,7 @@ router.post('/process',
   getUploadMiddleware(),
   validateProcessingRequest,
   async (req, res) => {
-    let currentStage = 'initialization'; // Define at the top of the function
+    let currentStage = 'initialization';
     
     try {
       console.log('🔍 DEBUG - Received request body:', req.body);
@@ -145,7 +145,7 @@ router.post('/process',
 
       // Quarter is already normalized above, just verify format
       if (quarter && !normalizedQuarter.startsWith('q')) {
-        normalizedQuarter = `q${quarter}`; // Convert "3" to "q3"
+        normalizedQuarter = `q${quarter}`;
       }
       
       console.log('🔍 DEBUG - Quarter normalization:', {
@@ -181,7 +181,7 @@ router.post('/process',
       const uploadResult = await processSpreadsheet(file, {
         submissionType,
         businessType: businessType || 'sole_trader',
-        quarter: normalizedQuarter // Use normalized quarter
+        quarter: normalizedQuarter
       }, progressCallback);
 
       console.log('✅ Upload result:', {
@@ -198,27 +198,73 @@ router.post('/process',
         });
       }
 
-      // STEP 2: AI Categorization
+      // STEP 2: Process based on submission type
       currentStage = 'categorization';
-      console.log('Step 2: AI categorizing transactions...');
-      console.log('🔍 DEBUG - Sending to categorization:', {
-        rowCount: uploadResult.rawRows.length,
-        businessType: businessType || 'sole_trader',
-        firstRow: uploadResult.rawRows[0]
-      });
-      
-      const categorizationResults = await processSpreadsheetLineByLine(
-        uploadResult.rawRows,
-        businessType || 'sole_trader',
-        progressCallback
-      );
+      let categorizationResults;
 
-      console.log('✅ Categorization results:', {
-        total: categorizationResults.totalRows,
-        successful: categorizationResults.summary.successful,
-        personal: categorizationResults.summary.personal,
-        errors: categorizationResults.summary.errors
-      });
+      // Check if this is a multi-quarter spreadsheet
+      const { hasSeparatelyDefinedQuarters } = require('../utils/quarterly-same-sheet-seperatley-defined.util');
+      const isMultiQuarterSpreadsheet = submissionType === 'quarterly' && 
+                                        hasSeparatelyDefinedQuarters(uploadResult.rawRows);
+
+      if (isMultiQuarterSpreadsheet) {
+        // Use quarterly submission service ONLY for multi-quarter spreadsheets
+        console.log('Step 2: Processing multi-quarter spreadsheet submission...');
+        console.log('🔍 DEBUG - Multi-quarter spreadsheet detected:', {
+          quarter: normalizedQuarter,
+          businessType: businessType || 'sole_trader',
+          spreadsheetType: 'same_separated',
+          rowCount: uploadResult.rawRows.length
+        });
+
+        categorizationResults = await processQuarterlySubmission(
+          uploadResult.rawRows,
+          {
+            quarter: normalizedQuarter,
+            businessType: businessType || 'sole_trader',
+            spreadsheetType: 'same_separated', // Force to same_separated for multi-quarter
+            userId: userId,
+            taxYear: currentYear
+          },
+          progressCallback
+        );
+
+        console.log('✅ Multi-quarter submission results:', {
+          quarter: categorizationResults.quarter,
+          processingMethod: categorizationResults.processingMethod,
+          successful: categorizationResults.summary.successful,
+          personal: categorizationResults.summary.personal,
+          errors: categorizationResults.summary.errors
+        });
+
+      } else {
+        // Use categorization utility for annual AND single-quarter submissions
+        const submissionDescription = submissionType === 'quarterly' 
+          ? `single-quarter (${normalizedQuarter.toUpperCase()})` 
+          : 'annual';
+        
+        console.log(`Step 2: Processing ${submissionDescription} submission...`);
+        console.log('🔍 DEBUG - Sending to categorization:', {
+          submissionType,
+          quarter: normalizedQuarter || 'N/A',
+          rowCount: uploadResult.rawRows.length,
+          businessType: businessType || 'sole_trader',
+          firstRow: uploadResult.rawRows[0]
+        });
+        
+        categorizationResults = await processSpreadsheetLineByLine(
+          uploadResult.rawRows,
+          businessType || 'sole_trader',
+          progressCallback
+        );
+
+        console.log(`✅ ${submissionDescription.charAt(0).toUpperCase() + submissionDescription.slice(1)} categorization results:`, {
+          total: categorizationResults.totalRows,
+          successful: categorizationResults.summary.successful,
+          personal: categorizationResults.summary.personal,
+          errors: categorizationResults.summary.errors
+        });
+      }
 
       if (categorizationResults.summary.successful === 0) {
         console.log('❌ No successful categorizations');
@@ -237,35 +283,10 @@ router.post('/process',
         });
       }
 
-      // STEP 3: Generate submission based on type
-      currentStage = 'submission';
-      console.log(`Step 3: Generating ${submissionType} submission...`);
+      // STEP 3: Return categorization results directly (no submission service)
+      currentStage = 'complete';
+      console.log(`✅ Successfully categorized ${submissionType} data`);
       
-      let submissionResult;
-      
-      if (submissionType === 'quarterly') {
-        console.log('🔍 DEBUG - Calling quarterly submission with quarter:', normalizedQuarter);
-        console.log('🔍 DEBUG - Submission options:', parsedSubmissionOptions);
-        
-        // Generate quarterly submission with normalized quarter and options
-        submissionResult = await processQuarterlySubmission(
-          categorizationResults,
-          normalizedQuarter || 'q1', // Use normalized quarter
-          businessType || 'sole_trader',
-          parsedSubmissionOptions, // Pass submission options
-          progressCallback
-        );
-      } else {
-        // Generate annual submission
-        submissionResult = await processAnnualDeclaration(
-          categorizationResults,
-          businessType || 'sole_trader',
-          null,
-          progressCallback
-        );
-      }
-
-      // Rest of your response code...
       const finalResponse = {
         success: true,
         submissionType,
@@ -292,7 +313,7 @@ router.post('/process',
           manualReviewRequired: categorizationResults.summary.manualReviewRequired || 0
         },
         
-        // 🎯 ADD THIS: Direct categorization results for frontend display
+        // Direct categorization results for frontend display
         categorizedData: {
           frontendSummary: categorizationResults.frontendSummary,
           summary: categorizationResults.summary,
@@ -301,8 +322,15 @@ router.post('/process',
           processingDate: categorizationResults.processingDate
         },
         
-        // Main submission data
-        submission: submissionResult,
+        // Main submission data (just the categorization for now)
+        submission: {
+          categorizedTransactions: categorizationResults.categorizedTransactions,
+          categoryTotals: categorizationResults.categoryTotals,
+          summary: categorizationResults.summary,
+          submissionType,
+          quarter: normalizedQuarter,
+          businessType: businessType || 'sole_trader'
+        },
         
         // Processing details for debugging/review
         processingDetails: {
@@ -310,7 +338,8 @@ router.post('/process',
           categorizationSuccess: true,
           submissionSuccess: true,
           processingTime: Date.now(),
-          stages: processingTracker
+          stages: processingTracker,
+          note: 'Using categorization utility only - submission services bypassed'
         },
         
         // Quality indicators
@@ -319,23 +348,21 @@ router.post('/process',
           personalTransactionRate: Math.round((categorizationResults.summary.personal / categorizationResults.totalRows) * 100),
           errorRate: Math.round((categorizationResults.summary.errors / categorizationResults.totalRows) * 100),
           needsReview: (categorizationResults.summary.manualReviewRequired || 0) > 0,
-          recommendedActions: generateRecommendedActions(categorizationResults, submissionResult)
+          recommendedActions: generateRecommendedActions(categorizationResults, { summary: categorizationResults.summary })
         }
       };
 
-      console.log(`✅ Successfully processed ${submissionType} submission`);
       res.json(finalResponse);
 
     } catch (error) {
       console.error('❌ File processing failed:', error);
       console.error('Error stack:', error.stack);
       
-      // More detailed error logging with proper currentStage access
       res.status(500).json({
         success: false,
         error: 'Internal Server Error',
         message: error.message || 'An unexpected error occurred during file processing',
-        stage: currentStage || 'unknown', // Provide fallback
+        stage: currentStage || 'unknown',
         details: process.env.NODE_ENV === 'development' ? {
           message: error.message,
           stack: error.stack

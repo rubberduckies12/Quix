@@ -233,84 +233,39 @@ class CategorizationUtil {
     }
 
     
-    // Fallback: single column format with direction indicators
+    // Fallback: single column format with direction indicators OR scan all columns including _col ones
     if (transactions.length === 0) {
       let amount = 0;
       let description = '';
       let transactionType = '';
       
-      // Detect explicit direction column (e.g. 'in' which contains 'in' or 'out')
+      // Scan ALL columns including ones with _col prefix (from Excel parser)
       for (const [key, value] of Object.entries(row)) {
-        if (!key || typeof key !== 'string') continue;
-        const lowerKey = key.toLowerCase().trim();
-        if (['in', 'direction', 'in/out', 'in_out', 'flow'].includes(lowerKey)) {
-          if (value && typeof value === 'string') {
-            const lowerVal = value.toLowerCase().trim();
-            if (lowerVal.includes('out') || lowerVal.includes('-') || lowerVal.includes('expense')) {
-              transactionType = 'expense';
-            } else if (lowerVal.includes('in') || lowerVal.includes('income') || lowerVal.includes('receipt')) {
-              transactionType = 'income';
-            }
-          }
-          break;
+        // Skip metadata columns
+        if (key === '_rowNumber' || key === '_originalRowIndex' || !value) continue;
+        
+        const cleanValue = String(value).replace(/[£$,\s]/g, '');
+        const numValue = parseFloat(cleanValue);
+        
+        // Check if this is an amount (numeric value > 0)
+        if (!isNaN(numValue) && numValue > 0) {
+          amount = numValue;
         }
-      }
-
-      // Find amount in unnamed column (original logic)
-      for (const [key, value] of Object.entries(row)) {
-        if (key.startsWith('_') || !value) continue;
-
-        // The actual amounts are in the empty key column ""
-        if (key === '' && value) {
-          const cleanValue = String(value).replace(/[£$,\s]/g, '');
-          const numValue = parseFloat(cleanValue);
-          if (!isNaN(numValue) && numValue > 0) {
-            amount = numValue;
-            break; // Found the amount, stop looking
+        // Check if this is a description (text, not numeric, not n/a)
+        else if (typeof value === 'string' && value.trim().toLowerCase() !== 'n/a' && value.trim().length > 2) {
+          if (!description) {
+            description = value.trim();
           }
         }
       }
 
-      // Final fallback: try any numeric column
-      if (amount === 0) {
-        for (const [key, value] of Object.entries(row)) {
-          if (key.startsWith('_') || key === 'Box' || !value) continue;
-          
-          const cleanValue = String(value).replace(/[£$,\s]/g, '');
-          const numValue = parseFloat(cleanValue);
-          if (!isNaN(numValue) && numValue > 0) {
-            amount = numValue;
-            
-            // Try to find description in other columns
-            if (!description) {
-              for (const [descKey, descValue] of Object.entries(row)) {
-                if (descKey !== key && descValue && !descKey.startsWith('_') && isNaN(parseFloat(descValue))) {
-                  description = `${descKey}: ${descValue}`;
-                  break;
-                }
-              }
-            }
-            break;
-          }
-        }
-      }
-
-      // If we detected a direction earlier but haven't set transactionType from amounts, try to infer
-      if (!transactionType) {
-        // If amount was found in what looked like an Income column, set income
-        if (Object.keys(row).some(k => k && k.toLowerCase && k.toLowerCase().includes('income')) && row.Income) {
-          transactionType = 'income';
-        }
-      }
-
-      // Create single transaction if we found data
+      // If we found an amount, create a transaction
       if (amount > 0) {
-        // Ensure we have some description
-        if (!description) {
-          description = transactionType || 'Transaction';
-          if (boxNumber) {
-            description = `Box ${boxNumber}`;
-          }
+        // Use description or fallback to box number
+        if (!description && boxNumber) {
+          description = `Box ${boxNumber}`;
+        } else if (!description) {
+          description = 'Transaction';
         }
 
         transactions.push({

@@ -365,30 +365,49 @@ class UploadService {
       const jsonData = XLSX.utils.sheet_to_json(worksheet, {
         header: 1, // Return array of arrays first
         defval: '', // Default value for empty cells
-        blankrows: false // Skip blank rows
+        blankrows: false, // Skip blank rows
+        raw: false // Convert all values to strings
       });
 
       if (jsonData.length === 0) {
         throw new Error('Excel sheet is empty');
       }
 
-      // Convert to objects but keep ALL original column names
-      const headers = jsonData[0].map(header => 
-        typeof header === 'string' ? header.trim() : String(header).trim()
+      // Find the maximum column count across all rows to capture ALL columns
+      const maxColumns = Math.max(...jsonData.map(row => row.length));
+      console.log(`📊 Excel parser found ${maxColumns} columns in spreadsheet`);
+
+      // Use first row as headers, but pad with empty strings if needed
+      let headers = jsonData[0] || [];
+      // Ensure we have enough header entries for all columns
+      while (headers.length < maxColumns) {
+        headers.push(''); // Add empty headers for columns without headers
+      }
+      headers = headers.map(header => 
+        typeof header === 'string' ? header.trim() : String(header || '').trim()
       );
+      
+      console.log(`📊 Headers (${headers.length}):`, headers);
       
       const dataRows = jsonData.slice(1);
       const objects = dataRows.map((row, index) => {
         const obj = {
-          _rowNumber: index + 2 // Track original row number
+          _rowNumber: index + 2, // Track original row number
+          _originalRowIndex: index
         };
-        headers.forEach((header, colIndex) => {
+        
+        // Iterate through ALL columns (up to maxColumns)
+        for (let colIndex = 0; colIndex < maxColumns; colIndex++) {
+          const header = headers[colIndex] || `_col${colIndex}`;
           const value = row[colIndex];
-          // Keep the original header name - don't lowercase or modify!
+          // Keep ALL values including empty ones
           obj[header] = value !== undefined && value !== null ? String(value).trim() : '';
-        });
+        }
+        
         return obj;
       });
+
+      console.log(`📊 Sample parsed row:`, JSON.stringify(objects[0], null, 2));
 
       return objects;
 
