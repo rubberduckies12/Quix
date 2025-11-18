@@ -239,6 +239,9 @@ class CategorizationUtil {
       let description = '';
       let transactionType = '';
       
+      // Known HMRC box numbers to exclude from amount detection ONLY in Box column
+      const HMRC_BOX_NUMBERS = [20, 21, 22, 23, 24, 25, 27, 28, 29, 44];
+      
       // Scan ALL columns including ones with _col prefix (from Excel parser)
       for (const [key, value] of Object.entries(row)) {
         // Skip metadata columns
@@ -248,7 +251,10 @@ class CategorizationUtil {
         const numValue = parseFloat(cleanValue);
         
         // Check if this is an amount (numeric value > 0)
-        if (!isNaN(numValue) && numValue > 0) {
+        // Only exclude box numbers if they're in the "Box" column itself
+        const isBoxNumber = (key === 'Box' || key.toLowerCase() === 'box') && HMRC_BOX_NUMBERS.includes(numValue);
+        
+        if (!isNaN(numValue) && numValue > 0 && !isBoxNumber) {
           amount = numValue;
         }
         // Check if this is a description (text, not numeric, not n/a)
