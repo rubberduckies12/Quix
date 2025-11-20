@@ -396,34 +396,6 @@ const Home = () => {
           </table>
         </div>
 
-        <div className="dashboard-summary">
-          <div className="summary-cards">
-            <div className="summary-card">
-              <h3>Completed</h3>
-              <div className="summary-number completed">
-                {submissions.filter(s => s.status.toLowerCase() === 'uploaded').length}
-              </div>
-              <p>Submissions uploaded</p>
-            </div>
-            
-            <div className="summary-card">
-              <h3>Pending</h3>
-              <div className="summary-number pending">
-                {submissions.filter(s => s.status.toLowerCase() === 'pending').length}
-              </div>
-              <p>Being processed</p>
-            </div>
-            
-            <div className="summary-card">
-              <h3>Overdue</h3>
-              <div className="summary-number overdue">
-                {submissions.filter(s => getDueDateStatus(s.dueDate) === 'overdue').length}
-              </div>
-              <p>Past deadline</p>
-            </div>
-          </div>
-        </div>
-
         {/* Footer Link */}
         <div className="footer-link">
           <p>
