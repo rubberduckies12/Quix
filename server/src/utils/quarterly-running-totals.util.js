@@ -47,14 +47,18 @@ function calculateQuarterDifference(currentCumulativeTotals, previousQuarterTota
   for (const category of allCategories) {
     const currentValue = currentCumulativeTotals[category] || 0;
     const previousValue = previousQuarterTotals[category] || 0;
-    const difference = currentValue - previousValue;
+    let difference = currentValue - previousValue;
+
+    // If difference is negative, set to 0 (cannot have negative expenses/income for a quarter)
+    if (difference < 0) {
+      console.log(`   ⚠️  ${category}: Negative difference detected (${difference}), setting to 0`);
+      difference = 0;
+    }
 
     quarterDifference[category] = difference;
 
     if (difference > 0) {
       totalIncrease += difference;
-    } else if (difference < 0) {
-      totalDecrease += Math.abs(difference);
     }
 
     categoriesProcessed++;
@@ -65,8 +69,7 @@ function calculateQuarterDifference(currentCumulativeTotals, previousQuarterTota
   console.log(`\n✅ Quarter difference calculated:`);
   console.log(`   Categories processed: ${categoriesProcessed}`);
   console.log(`   Total increases: £${totalIncrease.toFixed(2)}`);
-  console.log(`   Total decreases: £${totalDecrease.toFixed(2)}`);
-  console.log(`   Net change: £${(totalIncrease - totalDecrease).toFixed(2)}`);
+  console.log(`   Net change: £${totalIncrease.toFixed(2)}`);
 
   return quarterDifference;
 }
@@ -318,20 +321,30 @@ function processRunningTotals(currentCategorizationResults, previousQuarters, ta
     throw new Error(`Cannot calculate ${targetQuarter.toUpperCase()} difference - no previous quarter data found. Please ensure previous quarters are uploaded first.`);
   }
 
-  // Calculate cumulative totals from previous quarters
+  // Calculate cumulative totals from all previous quarters
   const previousCumulativeTotals = calculateCumulativeTotals(previousQuarters);
 
-  // Calculate the difference
+  // Calculate the difference (current cumulative - previous cumulative = this quarter only)
   const actualQuarterTotals = calculateQuarterDifference(
     currentCategorizationResults.categoryTotals,
     previousCumulativeTotals,
     targetQuarter
   );
 
+  // Regenerate frontend summary with the actual quarter values
+  const businessType = currentCategorizationResults.businessType || 'landlord';
+  const updatedFrontendSummary = createFrontendSummary(actualQuarterTotals, businessType);
+
+  console.log(`\n📊 Frontend Summary Generated:`);
+  console.log(`   Cumulative totals: ${JSON.stringify(currentCategorizationResults.categoryTotals)}`);
+  console.log(`   Actual quarter totals: ${JSON.stringify(actualQuarterTotals)}`);
+  console.log(`   Frontend summary items: ${updatedFrontendSummary.length}`);
+
   // Create updated categorization results with actual quarter values
   const updatedResults = {
     ...currentCategorizationResults,
     categoryTotals: actualQuarterTotals,
+    frontendSummary: updatedFrontendSummary,
     processingMethod: 'running_totals_difference',
     calculationDetails: {
       targetQuarter,
@@ -359,7 +372,7 @@ function processRunningTotals(currentCategorizationResults, previousQuarters, ta
  * @returns {Object} - Validation result with required quarters and missing quarters
  */
 function validatePreviousQuarters(targetQuarter, availableSubmissions) {
-  const quarterNumber = parseInt(targetQuarter.replace('q', ''));
+  const quarterNumber = parseInt(targetQuarter.toLowerCase().replace('q', ''));
   const requiredQuarters = [];
   
   for (let i = 1; i < quarterNumber; i++) {
@@ -368,9 +381,16 @@ function validatePreviousQuarters(targetQuarter, availableSubmissions) {
 
   const availableQuarters = availableSubmissions
     .filter(sub => sub.type === 'quarterly' && sub.categorization_results)
-    .map(sub => sub.quarter);
+    .map(sub => sub.quarter ? sub.quarter.toLowerCase() : '');
+
+  console.log('🔍 Validation check:');
+  console.log(`   Target quarter: ${targetQuarter}`);
+  console.log(`   Required quarters: ${requiredQuarters.join(', ')}`);
+  console.log(`   Available quarters: ${availableQuarters.join(', ')}`);
 
   const missingQuarters = requiredQuarters.filter(q => !availableQuarters.includes(q));
+  
+  console.log(`   Missing quarters: ${missingQuarters.length > 0 ? missingQuarters.join(', ') : 'none'}`);
 
   return {
     valid: missingQuarters.length === 0,

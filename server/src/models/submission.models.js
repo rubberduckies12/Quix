@@ -140,7 +140,8 @@ class SubmissionModel {
    */
   static async getUserSubmissions(userId = 1) {
     try {
-      const query = `
+      // First get all uploads
+      const uploadsQuery = `
         SELECT 
           u.upload_id,
           u.type,
@@ -150,18 +151,48 @@ class SubmissionModel {
           u.expense_total,
           u.profit_loss,
           u.status,
-          u.created_at,
-          COUNT(t.total_id) as categories_count
+          u.created_at
         FROM uploads u
-        LEFT JOIN totals t ON u.upload_id = t.upload_id
         WHERE u.user_id = $1
-        GROUP BY u.upload_id, u.type, u.quarter, u.tax_year, u.income_total, 
-                 u.expense_total, u.profit_loss, u.status, u.created_at
         ORDER BY u.created_at DESC
       `;
 
-      const result = await pool.query(query, [userId]);
-      return result.rows;
+      const uploadsResult = await pool.query(uploadsQuery, [userId]);
+      
+      // For each upload, get its totals and reconstruct categorization_results
+      const submissions = await Promise.all(uploadsResult.rows.map(async (upload) => {
+        const totalsQuery = `
+          SELECT hmrc_category, type, amount
+          FROM totals
+          WHERE upload_id = $1
+        `;
+        
+        const totalsResult = await pool.query(totalsQuery, [upload.upload_id]);
+        
+        // Reconstruct categoryTotals object
+        const categoryTotals = {};
+        totalsResult.rows.forEach(row => {
+          categoryTotals[row.hmrc_category] = parseFloat(row.amount);
+        });
+        
+        // Add categorization_results if we have totals
+        const categorizationResults = totalsResult.rows.length > 0 ? {
+          categoryTotals: categoryTotals,
+          summary: {
+            successful: totalsResult.rows.length,
+            personal: 0,
+            errors: 0
+          }
+        } : null;
+        
+        return {
+          ...upload,
+          categories_count: totalsResult.rows.length,
+          categorization_results: categorizationResults
+        };
+      }));
+      
+      return submissions;
     } catch (error) {
       console.error('❌ Error fetching user submissions:', error);
       throw new Error(`Failed to fetch submissions: ${error.message}`);

@@ -125,6 +125,7 @@ router.post('/process',
       }
 
       console.log('🔍 DEBUG - Parsed submission options:', parsedSubmissionOptions);
+      console.log('🔍 DEBUG - Spreadsheet type selected:', parsedSubmissionOptions.spreadsheetType || 'NONE');
 
       // Basic checks only
       if (!file) {
@@ -207,13 +208,22 @@ router.post('/process',
       const isMultiQuarterSpreadsheet = submissionType === 'quarterly' && 
                                         hasSeparatelyDefinedQuarters(uploadResult.rawRows);
 
-      if (isMultiQuarterSpreadsheet) {
-        // Use quarterly submission service ONLY for multi-quarter spreadsheets
-        console.log('Step 2: Processing multi-quarter spreadsheet submission...');
-        console.log('🔍 DEBUG - Multi-quarter spreadsheet detected:', {
+      // Check if user selected a specific spreadsheet type
+      const userSelectedSpreadsheetType = parsedSubmissionOptions.spreadsheetType;
+      const shouldUseQuarterlyService = submissionType === 'quarterly' && 
+                                       (isMultiQuarterSpreadsheet || userSelectedSpreadsheetType);
+
+      if (shouldUseQuarterlyService) {
+        // Use quarterly submission service for multi-quarter OR when user specified a type
+        const spreadsheetType = userSelectedSpreadsheetType || 'same_separated';
+        
+        console.log('Step 2: Processing quarterly submission...');
+        console.log('🔍 DEBUG - Quarterly submission detected:', {
           quarter: normalizedQuarter,
           businessType: businessType || 'sole_trader',
-          spreadsheetType: 'same_separated',
+          spreadsheetType: spreadsheetType,
+          userSelected: !!userSelectedSpreadsheetType,
+          autoDetected: isMultiQuarterSpreadsheet,
           rowCount: uploadResult.rawRows.length
         });
 
@@ -222,16 +232,17 @@ router.post('/process',
           {
             quarter: normalizedQuarter,
             businessType: businessType || 'sole_trader',
-            spreadsheetType: 'same_separated', // Force to same_separated for multi-quarter
+            spreadsheetType: spreadsheetType,
             userId: userId,
             taxYear: currentYear
           },
           progressCallback
         );
 
-        console.log('✅ Multi-quarter submission results:', {
+        console.log('✅ Quarterly submission results:', {
           quarter: categorizationResults.quarter,
           processingMethod: categorizationResults.processingMethod,
+          spreadsheetType: spreadsheetType,
           successful: categorizationResults.summary.successful,
           personal: categorizationResults.summary.personal,
           errors: categorizationResults.summary.errors

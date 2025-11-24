@@ -70,6 +70,12 @@ class SubmitApiService {
     // Add tax year
     formData.append('taxYear', submissionData.taxYear || new Date().getFullYear());
 
+    // Add submission options if provided (for quarterly submissions)
+    if (submissionData.submissionOptions) {
+      formData.append('submissionOptions', JSON.stringify(submissionData.submissionOptions));
+      console.log('📋 Submission options being sent:', submissionData.submissionOptions);
+    }
+
     console.log('📤 Final form data being sent:');
     for (let [key, value] of formData.entries()) {
       console.log(`  ${key}: ${value}`);

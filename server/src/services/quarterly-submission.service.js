@@ -209,9 +209,16 @@ async function processSameCumulative(rawRows, options, progressCallback) {
   }
 
   console.log('\n🔍 Retrieving previous quarters for difference calculation...');
+  console.log(`   Target quarter: ${options.quarter}`);
+  console.log(`   Tax year: ${options.taxYear}`);
   
   // Get all user submissions for this tax year
   const existingSubmissions = await SubmissionModel.getUserSubmissions(options.userId);
+  
+  console.log(`   Total submissions found: ${existingSubmissions.length}`);
+  existingSubmissions.forEach(sub => {
+    console.log(`     - Type: ${sub.type}, Quarter: ${sub.quarter}, Year: ${sub.tax_year}, Has results: ${!!sub.categorization_results}`);
+  });
   
   // Filter for quarterly submissions in current tax year with categorization results
   const previousQuarters = existingSubmissions.filter(sub => 
@@ -228,7 +235,7 @@ async function processSameCumulative(rawRows, options, progressCallback) {
 
   console.log(`   Found ${previousQuarters.length} previous quarter(s)`);
   previousQuarters.forEach(q => {
-    console.log(`   - ${q.quarter.toUpperCase()}: ${Object.keys(q.categoryTotals).length} categories`);
+    console.log(`   - ${q.quarter}: ${Object.keys(q.categoryTotals).length} categories`);
   });
 
   // Validate we have all required previous quarters
@@ -250,7 +257,7 @@ async function processSameCumulative(rawRows, options, progressCallback) {
     });
   }
 
-  // Step 4: Calculate the actual quarter values (current - previous)
+  // Step 4: Calculate the actual quarter values (current - previous cumulative)
   const actualQuarterResults = runningTotalsUtil.processRunningTotals(
     cumulativeCategorizationResults,
     previousQuarters,
@@ -267,10 +274,19 @@ async function processSameCumulative(rawRows, options, progressCallback) {
 
   console.log('\n✅ Running totals processing complete');
   console.log(`   ${options.quarter.toUpperCase()} actual values calculated from cumulative totals`);
+  console.log('   Cumulative totals:', cumulativeCategorizationResults.categoryTotals);
+  console.log('   Actual quarter totals:', actualQuarterResults.categoryTotals);
+  console.log('   Frontend summary length:', actualQuarterResults.frontendSummary?.length);
 
   return {
     ...actualQuarterResults,
     quarter: options.quarter,
+    summary: {
+      ...actualQuarterResults.summary,
+      successful: actualQuarterResults.summary?.successful || Object.keys(actualQuarterResults.categoryTotals).length,
+      personal: actualQuarterResults.summary?.personal || 0,
+      errors: actualQuarterResults.summary?.errors || 0
+    },
     processingDetails: {
       ...actualQuarterResults.processingDetails,
       method: 'Running totals difference calculation',
