@@ -10,6 +10,7 @@ import Footer from '../../components/footer';
 const Home = () => {
   const [isClient, setIsClient] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
@@ -215,6 +216,89 @@ const Home = () => {
                 Making Tax Digital, Made Simple
               </p>
             </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Video Section */}
+      <section className="py-16 sm:py-20 lg:py-24 bg-white relative overflow-hidden">
+        {/* Excel Grid Background */}
+        <div className="absolute inset-0 opacity-10">
+          <div 
+            className="w-full h-full"
+            style={{
+              backgroundImage: `
+                linear-gradient(to right, #22c55e 1px, transparent 1px),
+                linear-gradient(to bottom, #22c55e 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 30px'
+            }}
+          />
+        </div>
+
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 relative z-10">
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeInUp}
+            className="text-center mb-10 sm:mb-12"
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black mb-4 sm:mb-6">
+              See Quix in Action
+            </h2>
+            <p className="text-base sm:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto">
+              Watch how Quix bridges your Excel workflow to MTD requirements in seconds
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={fadeInUp}
+            className="relative rounded-3xl overflow-hidden shadow-2xl bg-white aspect-video group cursor-pointer"
+            onClick={() => {
+              if (!isVideoPlaying) {
+                setIsVideoPlaying(true);
+                const video = document.getElementById('quix-demo-video') as HTMLVideoElement;
+                if (video) video.play();
+              }
+            }}
+          >
+            {!isVideoPlaying && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center">
+                <Image 
+                  src="/Quix/quix-logo-standard-white-background.png"
+                  alt="Quix Logo"
+                  fill
+                  className="object-cover"
+                />
+                <motion.div
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="absolute z-20 flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-full bg-green-600 shadow-2xl group-hover:bg-green-700 transition-colors"
+                >
+                  <svg 
+                    className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 text-white ml-2" 
+                    fill="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                </motion.div>
+              </div>
+            )}
+            <video 
+              id="quix-demo-video"
+              className="w-full h-full object-cover"
+              controls={isVideoPlaying}
+              preload="metadata"
+              onEnded={() => setIsVideoPlaying(false)}
+            >
+              <source src="/Quix/QuixMTDVideoDemo.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
           </motion.div>
         </div>
       </section>
