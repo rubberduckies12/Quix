@@ -1,4 +1,4 @@
-'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion, Variants, useReducedMotion } from 'framer-motion';
 import { SparklesIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
